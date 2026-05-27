@@ -1,0 +1,584 @@
+/* ========================================
+ADHUB DASHBOARD THEME
+======================================== */
+
+:root{
+
+    --primary:#1F3A93;
+    --primary-light:#3d5bc7;
+
+    --accent:#00B8A9;
+    --accent-dark:#009688;
+
+    --bg:#F4F4F9;
+
+    --text:#2E2E2E;
+    --muted:#64748b;
+
+    --card:#ffffff;
+
+    --border:#e2e8f0;
+}
+
+/* ========================================
+GLOBAL
+======================================== */
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    font-family:'Poppins', sans-serif;
+    background:var(--bg);
+    color:var(--text);
+}
+
+/* ========================================
+TOPBAR
+======================================== */
+
+.topbar{
+
+    position:fixed;
+
+    top:0;
+    left:0;
+    right:0;
+
+    height:75px;
+
+    background:rgba(255,255,255,0.95);
+
+    backdrop-filter:blur(12px);
+
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+
+    padding:0 30px;
+
+    border-bottom:1px solid var(--border);
+
+    z-index:1000;
+}
+
+.logo-section h3{
+
+    margin:0;
+
+    font-size:26px;
+    font-weight:700;
+
+    color:var(--primary);
+}
+
+.topbar-icons{
+
+    display:flex;
+    align-items:center;
+    gap:22px;
+}
+
+.topbar-icons a{
+
+    width:42px;
+    height:42px;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    border-radius:12px;
+
+    text-decoration:none;
+
+    color:var(--text);
+
+    background:#f8fafc;
+
+    transition:0.3s;
+}
+
+.topbar-icons a:hover{
+
+    background:var(--accent);
+    color:white;
+}
+
+.profile-box img{
+
+    width:45px;
+    height:45px;
+
+    border-radius:50%;
+
+    object-fit:cover;
+}
+
+/* ========================================
+SIDEBAR
+======================================== */
+
+.sidebar{
+    position:fixed;
+    top:75px;
+    left:0;
+
+    width:260px;
+
+    height:calc(100vh - 75px);
+
+    background:white;
+
+    border-right:1px solid var(--border);
+
+    padding:25px 18px;
+
+    overflow-y:auto;
+}
+
+.sidebar-menu{
+
+    display:flex;
+    flex-direction:column;
+
+    gap:10px;
+}
+
+.sidebar-menu a{
+
+    display:flex;
+    align-items:center;
+
+    gap:14px;
+
+    padding:15px 18px;
+
+    border-radius:16px;
+
+    text-decoration:none;
+
+    color:#334155;
+
+    font-weight:500;
+
+    transition:0.3s;
+}
+
+.sidebar-menu a:hover{
+
+    background:#e6fffc;
+
+    color:var(--accent);
+}
+
+.sidebar-menu a.active{
+
+    background:linear-gradient(
+        135deg,
+        var(--primary),
+        var(--primary-light)
+    );
+
+    color:white;
+}
+
+/* ========================================
+MAIN CONTENT
+======================================== */
+
+.main-content{
+    margin-left:260px;
+    padding:110px 35px 35px; /* topbar-safe spacing */
+    min-height:100vh;
+}
+
+
+
+/* ========================================
+HERO
+======================================== */
+
+.dashboard-hero{
+
+    background:
+    linear-gradient(
+        135deg,
+        #1F3A93 0%,
+        #324fb8 55%,
+        #00B8A9 100%
+    );
+
+    border-radius:28px;
+
+    padding:42px;
+
+    color:white;
+
+    margin-bottom:30px;
+}
+
+.dashboard-hero h1{
+
+    font-size:38px;
+    font-weight:700;
+
+    margin-bottom:10px;
+}
+
+/* ========================================
+STATS GRID
+======================================== */
+
+.stats-grid{
+
+    display:grid;
+
+    grid-template-columns:
+    repeat(auto-fit, minmax(240px,1fr));
+
+    gap:22px;
+
+    margin-bottom:30px;
+}
+
+/* ========================================
+STAT CARD
+======================================== */
+
+.stat-card{
+
+    background:white;
+
+    border-radius:24px;
+
+    padding:28px;
+
+    display:flex;
+    align-items:center;
+
+    gap:18px;
+
+    box-shadow:
+    0 6px 22px rgba(15,23,42,0.05);
+}
+
+.stat-card h2{
+
+    font-size:34px;
+    font-weight:700;
+
+    color:var(--primary);
+
+    margin-bottom:4px;
+}
+
+.stat-card p{
+
+    margin:0;
+
+    color:var(--muted);
+}
+
+/* ========================================
+STAT ICONS
+======================================== */
+
+.stat-icon{
+
+    width:68px;
+    height:68px;
+
+    border-radius:20px;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    font-size:26px;
+
+    color:white;
+}
+
+.blue{
+    background:#2563eb;
+}
+
+.green{
+    background:#10b981;
+}
+
+.orange{
+    background:#f59e0b;
+}
+
+.red{
+    background:#ef4444;
+}
+
+/* ========================================
+DASHBOARD GRID
+======================================== */
+
+.dashboard-grid{
+
+    display:grid;
+
+    grid-template-columns:
+    2fr 1fr;
+
+    gap:22px;
+
+    margin-bottom:20px;
+}
+
+/* ========================================
+CARDS
+======================================== */
+
+.dashboard-card{
+
+    background:white;
+
+    border-radius:24px;
+
+    padding:28px;
+
+    box-shadow:
+    0 6px 22px rgba(15,23,42,0.05);
+}
+
+/* ========================================
+CARD HEADER
+======================================== */
+
+.card-header-custom{
+
+    margin-bottom:22px;
+}
+
+.card-header-custom h3{
+
+    margin:0;
+
+    font-size:20px;
+    font-weight:600;
+
+    color:var(--primary);
+}
+
+/* ========================================
+TABLE
+======================================== */
+
+.custom-table th{
+
+    border:none;
+
+    color:var(--muted);
+
+    font-size:14px;
+}
+
+.custom-table td{
+
+    vertical-align:middle;
+
+    padding:16px 8px;
+}
+
+/* ========================================
+BADGES
+======================================== */
+
+.badge{
+
+    padding:8px 14px;
+
+    border-radius:50px;
+}
+
+/* ========================================
+PROGRESS
+======================================== */
+
+.progress-wrapper{
+
+    display:flex;
+    flex-direction:column;
+
+    gap:22px;
+}
+
+.progress-item{
+
+    display:flex;
+    flex-direction:column;
+
+    gap:10px;
+}
+
+.progress-top{
+
+    display:flex;
+    justify-content:space-between;
+}
+
+.progress{
+
+    height:12px;
+
+    border-radius:50px;
+
+    background:#e2e8f0;
+}
+
+.progress-bar{
+
+    background:
+    linear-gradient(
+        90deg,
+        var(--primary),
+        var(--accent)
+    );
+}
+
+/* ========================================
+CHARTS
+======================================== */
+
+#budgetSummaryChart{
+
+    width:100% !important;
+    height:320px !important;
+}
+
+#budgetUtilizationChart{
+
+    max-width:320px;
+
+    max-height:320px;
+
+    margin:auto;
+}
+
+/* ========================================
+RESPONSIVE
+======================================== */
+
+@media(max-width:1200px){
+
+    .dashboard-grid{
+
+        grid-template-columns:1fr;
+    }
+}
+
+@media(max-width:992px){
+
+    .sidebar{
+
+        width:85px;
+    }
+
+    .main-content{
+
+        margin-left:85px;
+    }
+}
+
+@media(max-width:768px){
+
+    .main-content{
+
+        padding:20px;
+    }
+
+    .dashboard-hero h1{
+
+        font-size:28px;
+    }
+}
+
+/* ========================================
+NOTIFICATIONS FIX
+======================================== */
+
+.notification-item{
+    display:flex;
+    align-items:flex-start;
+    gap:16px;
+
+    padding:16px 10px;
+
+    border-bottom:1px solid var(--border);
+}
+
+.notification-item:last-child{
+    border-bottom:none;
+}
+
+.notification-icon{
+    width:44px;
+    height:44px;
+
+    flex-shrink:0;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    border-radius:12px;
+
+    color:white;
+}
+
+.notification-content h5{
+    font-size:15px;
+    font-weight:600;
+}
+
+.notification-content p{
+    font-size:13px;
+    line-height:1.4;
+    margin:3px 0;
+    color:var(--muted);
+}
+
+.notification-content span{
+    font-size:12px;
+    color:#94a3b8;
+}
+
+/* ========================================
+TASK LINKS
+======================================== */
+
+.task-link{
+    text-decoration:none;
+    color:inherit;
+}
+
+.task-link:hover .stat-card{
+    transform:translateY(-3px);
+    transition:0.2s;
+}
+
+.notification-scroll{
+    max-height: 500px;
+    overflow-y: auto;
+    padding-right: 6px;
+}
+
+/* optional scrollbar styling */
+.notification-scroll::-webkit-scrollbar{
+    width: 6px;
+}
+
+.notification-scroll::-webkit-scrollbar-thumb{
+    background: #cbd5e1;
+    border-radius: 10px;
+}

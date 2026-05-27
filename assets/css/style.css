@@ -1,0 +1,224 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+*{
+    margin: 0;
+    padding: 0;
+}
+
+:root{
+
+    --primary:#1F3A93;
+    --accent:#00B8A9;
+
+    --bg:#F4F4F9;
+    --text:#2E2E2E;
+}
+
+body{
+
+    font-family:'Poppins', sans-serif;
+
+    background:var(--bg);
+
+    color:var(--text);
+}
+
+
+.landing-header{
+    width: 100%;
+    height: 58px;
+
+    background: #243ea3;
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    padding: 0 28px;
+
+    position: fixed;
+    top: 0;
+    left: 0;
+
+    z-index: 999;
+}
+
+.logo-section h3{
+    color: white;
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.nav-section{
+    display: flex;
+    align-items: center;
+    gap: 28px;
+}
+
+.nav-section a{
+    color: white;
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.get-started-btn{
+    background: white;
+    color: #111827 !important;
+
+    padding: 8px 18px;
+
+    border-radius: 8px;
+
+    font-weight: 600;
+
+    transition: 0.3s;
+}
+
+.get-started-btn:hover{
+    background: #e5e7eb;
+}
+
+/* Notification Dropdown */
+.notif-wrapper{
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+/* dropdown */
+.notif-dropdown{
+    position: absolute;
+
+    top: calc(100% + 10px); /* 👈 tight spacing under bell */
+    right: 0;
+
+    width: 320px;
+    background: #fff;
+
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+
+    padding: 10px;
+
+    display: none;
+    z-index: 9999;
+}
+
+.notif-item{
+    padding:10px;
+    border-bottom:1px solid #eee;
+}
+
+.notif-item:last-child{
+    border-bottom:none;
+}
+
+.notif-item strong{
+    font-size:14px;
+}
+
+.notif-item p{
+    font-size:12px;
+    margin:2px 0;
+    color:#64748b;
+}
+
+.notif-item small{
+    font-size:11px;
+    color:#999;
+}
+
+.notif-wrapper{
+    position: relative;
+    display: inline-block;
+}
+
+.notif-bell{
+    font-size:18px;
+    padding:10px;
+    color:#0f172a;
+}
+
+.notif-dropdown{
+    position:absolute;
+    top:45px;
+    right:0;
+    width:320px;
+    background:#fff;
+    border-radius:14px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.15);
+    display:none;
+    flex-direction:column;
+    z-index:9999;
+}
+
+.notif-dropdown.show{
+    display:flex;
+}
+
+.notif-item{
+    padding:12px;
+    border-bottom:1px solid #f1f5f9;
+}
+
+.notif-view-all{
+    text-align:center;
+    padding:10px;
+    background:var(--primary);
+    color:#fff;
+    display:block;
+    text-decoration:none;
+}
+
+.table-scroll{
+    max-height: 320px;   /* adjust per section */
+    overflow-y: auto;
+    border-radius: 16px;
+}
+
+/* optional: makes header stick while scrolling */
+.table-scroll thead th{
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 2;
+}
+
+.table-scroll::-webkit-scrollbar{
+    width: 6px;
+}
+
+.table-scroll::-webkit-scrollbar-thumb{
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+.milestone-scroll{
+    max-height: 320px;   /* adjust height as needed */
+    overflow-y: auto;
+    padding-right: 6px;
+}
+
+/* optional scrollbar styling */
+.milestone-scroll::-webkit-scrollbar{
+    width: 6px;
+}
+
+.milestone-scroll::-webkit-scrollbar-thumb{
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+.card-header-custom{
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 2;
+}
+
+textarea.form-control{
+    border-radius:12px;
+}
+
