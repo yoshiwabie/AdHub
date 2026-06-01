@@ -3,7 +3,6 @@ session_start();
 
 include('../../config/db.php');
 include('../../config/queries.php');
-include('../../includes/topbar.php');
 
 if(!isset($_SESSION['user_id'])){
     header("Location: index.php");
@@ -271,6 +270,8 @@ $notificationsQuery = mysqli_query($conn,"
 
 </head>
 <body>
+
+<?php include('../../includes/topbar.php'); ?>
 
 <!-- SIDEBAR -->
 <div class="sidebar">

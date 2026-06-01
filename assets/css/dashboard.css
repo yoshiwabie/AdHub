@@ -18,6 +18,8 @@ ADHUB DASHBOARD THEME
     --card:#ffffff;
 
     --border:#e2e8f0;
+
+    --topbar-h: 60px;
 }
 
 /* ========================================
@@ -40,30 +42,6 @@ body{
 TOPBAR
 ======================================== */
 
-.topbar{
-
-    position:fixed;
-
-    top:0;
-    left:0;
-    right:0;
-
-    height:75px;
-
-    background:rgba(255,255,255,0.95);
-
-    backdrop-filter:blur(12px);
-
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-
-    padding:0 30px;
-
-    border-bottom:1px solid var(--border);
-
-    z-index:1000;
-}
 
 .logo-section h3{
 
@@ -124,12 +102,12 @@ SIDEBAR
 
 .sidebar{
     position:fixed;
-    top:75px;
+    top: var(--topbar-h);
     left:0;
 
     width:260px;
 
-    height:calc(100vh - 75px);
+    height: calc(100vh - var(--topbar-h));
 
     background:white;
 
@@ -190,10 +168,10 @@ SIDEBAR
 MAIN CONTENT
 ======================================== */
 
-.main-content{
-    margin-left:260px;
-    padding:110px 35px 35px; /* topbar-safe spacing */
-    min-height:100vh;
+.main-content {
+    margin-left: 260px;
+    padding: 35px 35px 35px;
+    min-height: 100vh;
 }
 
 
