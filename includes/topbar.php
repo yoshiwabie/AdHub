@@ -109,9 +109,9 @@ if ($notif_count === 0) {
     position: relative;
 }
 
-.topbar {
+.adhub-topbar {
     height: var(--tb-h);
-    background: var(--accent);
+    background: #1F3A93 !important;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -122,7 +122,7 @@ if ($notif_count === 0) {
     box-shadow: 0 2px 12px rgba(31,58,147,.35);
 }
 
-.topbar .tb-logo {
+.adhub-topbar .tb-logo {
     font-size: 20px;
     font-weight: 800;
     color: var(--white);
@@ -633,7 +633,7 @@ if ($notif_count === 0) {
 <!-- ============================================================
 TOPBAR HTML
 ============================================================ -->
-<header class="topbar">
+<header class="adhub-topbar">
 
     <div class="tb-logo">AdHub</div>
 
