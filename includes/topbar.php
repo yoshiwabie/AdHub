@@ -10,44 +10,47 @@ include(__DIR__ . '/../config/db.php');
 SESSION DATA
 ========================================
 */
-$user_id   = $_SESSION['user_id']   ?? 0;
-$user_name = $_SESSION['name']      ?? 'User';
-$user_role = $_SESSION['role']      ?? 'client';
+$user_id   = $_SESSION['user_id'] ?? 0;
+$user_name = $_SESSION['name']    ?? 'User';
+$user_role = $_SESSION['role']    ?? 'client';
 $user_pic  = $_SESSION['profile_pic'] ?? null;
 
-$initials = strtoupper(implode('', array_map(fn($w) => $w[0], explode(' ', trim($user_name)))));
-$initials = substr($initials, 0, 2);
+$initials = 'U';
+if (!empty(trim($user_name))) {
+    $words = explode(' ', trim($user_name));
+    $initials = strtoupper(implode('', array_map(fn($w) => $w[0], $words)));
+    $initials = substr($initials, 0, 2);
+}
 
 /*
 ========================================
-NOTIFICATIONS  (unread first, latest 5)
+FOLDER PATH  (role → folder name)
+========================================
+*/
+$folder = ($user_role === 'staff') ? 'admin' : 'client';
+
+/*
+========================================
+NOTIFICATIONS  (latest 5)
 ========================================
 */
 $notifQuery = mysqli_query($conn, "
-    SELECT notification_id AS id, title, message, created_at,
-           0 AS is_read,
-           'info' AS type
-    FROM notifications
-    WHERE user_id = '" . mysqli_real_escape_string($conn, $user_id) . "'
-    ORDER BY created_at DESC
-    LIMIT 5
+    SELECT notification_id AS id, title, message, created_at
+    FROM   notifications
+    WHERE  user_id = '" . mysqli_real_escape_string($conn, $user_id) . "'
+    ORDER  BY created_at DESC
+    LIMIT  5
 ");
 
 $notifications = [];
-$unread_count  = 0;
 while ($row = mysqli_fetch_assoc($notifQuery)) {
     $notifications[] = $row;
-    if (!$row['is_read']) $unread_count++;
 }
-
-// Since DB has no is_read column, use session to track if user already marked all read
-if (isset($_SESSION['notif_all_read']) && $_SESSION['notif_all_read'] == 1) {
-    $unread_count = 0;
-}
+$notif_count = count($notifications);
 
 /*
 ========================================
-MARK ALL READ  (AJAX handler)
+MARK ALL READ  (AJAX — session-based)
 ========================================
 */
 if (isset($_GET['mark_all_read']) && $_GET['mark_all_read'] == 1) {
@@ -56,222 +59,227 @@ if (isset($_GET['mark_all_read']) && $_GET['mark_all_read'] == 1) {
     exit;
 }
 
-/*
-========================================
-NOTIFICATION ICON  helper
-========================================
-type: info | success | warning | danger
-========================================
-*/
-if (!function_exists('notif_icon_class')) {
-    function notif_icon_class(string $type): string {
-        return match ($type) {
-            'success' => 'ni-success',
-            'warning' => 'ni-warning',
-            'danger'  => 'ni-danger',
-            default   => 'ni-info',
-        };
-    }
-}
+$unread_count = isset($_SESSION['notif_all_read']) ? 0 : $notif_count;
 
-if (!function_exists('notif_icon')) {
-    function notif_icon(string $type): string {
-        return match ($type) {
-            'success' => 'fa-circle-check',
-            'warning' => 'fa-triangle-exclamation',
-            'danger'  => 'fa-circle-xmark',
-            default   => 'fa-circle-info',
-        };
-    }
+// Reset unread flag when new notifications arrive (simple heuristic)
+if ($notif_count === 0) {
+    $_SESSION['notif_all_read'] = 1;
 }
 ?>
 
-<!-- ============================================================
-TOPBAR STYLES
-============================================================ -->
 <style>
-/* ---------- BASE ---------- */
+/* ── RESET ── */
+*, *::before, *::after { box-sizing: border-box; }
+
+/* ── VARIABLES ── */
 :root {
-    --tb-h: 58px;
-    --tb-bg: #ffffff;
-    --tb-border: #e9edf2;
-    --tb-shadow: 0 1px 3px rgba(0,0,0,.06);
-
-    --accent: #3b5bdb;
-    --accent-light: #eef2ff;
-    --accent-text: #3b5bdb;
-
-    --text-1: #111827;
-    --text-2: #4b5563;
-    --text-3: #9ca3af;
-
-    --surface: #f9fafb;
-    --border: #e5e7eb;
-    --radius: 10px;
-    --radius-lg: 14px;
-
-    --drop-w: 320px;
-    --settings-w: 280px;
-
-    --ni-info-bg: #eff6ff;  --ni-info-fg: #2563eb;
-    --ni-success-bg: #f0fdf4; --ni-success-fg: #16a34a;
-    --ni-warning-bg: #fffbeb; --ni-warning-fg: #d97706;
-    --ni-danger-bg:  #fef2f2; --ni-danger-fg:  #dc2626;
+    --tb-h:        60px;
+    --accent:      #1F3A93;
+    --accent-dark: #162d7a;
+    --accent-lite: #e8ecf8;
+    --accent-mid:  #c5cef0;
+    --white:       #ffffff;
+    --text-1:      #111827;
+    --text-2:      #4b5563;
+    --text-3:      #9ca3af;
+    --border:      #e5e7eb;
+    --surface:     #f9fafb;
+    --danger:      #dc2626;
+    --danger-bg:   #fef2f2;
+    --danger-bd:   #fecaca;
+    --r:           10px;
+    --r-lg:        14px;
+    --drop-notif:  320px;
+    --drop-set:    290px;
+    --shadow:      0 8px 30px rgba(0,0,0,.12), 0 2px 8px rgba(0,0,0,.06);
 }
 
-/* ---------- TOPBAR ---------- */
+/* ── TOPBAR ── */
+
+.tb-drop {
+    z-index: 999999 !important;
+    position: absolute;
+}
+
+.topbar {
+    overflow: visible !important;
+}
+
+.tb-drop-wrap {
+    position: relative;
+}
+
 .topbar {
     height: var(--tb-h);
-    background: var(--tb-bg);
-    border-bottom: 1px solid var(--tb-border);
-    box-shadow: var(--tb-shadow);
+    background: var(--accent);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 20px;
+    padding: 0 24px;
     position: sticky;
     top: 0;
     z-index: 500;
+    box-shadow: 0 2px 12px rgba(31,58,147,.35);
 }
 
-.topbar .logo-section h3 {
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--text-1);
-    letter-spacing: -.4px;
+.topbar .tb-logo {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--white);
+    letter-spacing: -.5px;
 }
 
-.topbar-icons {
+/* ── ICON ROW ── */
+.tb-icons {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
 }
 
-/* ---------- ICON BUTTON ---------- */
+/* ── ICON BUTTON ── */
 .tb-btn {
-    width: 36px;
-    height: 36px;
-    border-radius: var(--radius);
+    width: 38px;
+    height: 38px;
+    border-radius: var(--r);
     background: transparent;
     border: none;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--text-2);
-    font-size: 17px;
+    color: rgba(255,255,255,.80);
+    font-size: 18px;
     transition: background .15s, color .15s;
     position: relative;
+    flex-shrink: 0;
 }
-.tb-btn:hover { background: var(--surface); color: var(--text-1); }
-.tb-btn.is-open { background: var(--accent-light); color: var(--accent); }
+.tb-btn:hover  { background: rgba(255,255,255,.15); color: #fff; }
+.tb-btn.active { background: rgba(255,255,255,.20); color: #fff; }
 
-/* unread badge */
+/* ── BADGE ── */
 .tb-badge {
     position: absolute;
-    top: 4px; right: 4px;
-    min-width: 16px; height: 16px;
+    top: 3px; right: 3px;
+    min-width: 17px; height: 17px;
     padding: 0 4px;
-    border-radius: 8px;
+    border-radius: 9px;
     background: #ef4444;
     color: #fff;
     font-size: 9px;
     font-weight: 700;
-    line-height: 16px;
+    line-height: 17px;
     text-align: center;
-    border: 2px solid var(--tb-bg);
+    border: 2px solid var(--accent);
     display: none;
 }
-.tb-badge.visible { display: block; }
+.tb-badge.show { display: block; }
 
-/* ---------- AVATAR ---------- */
+/* ── AVATAR ── */
 .tb-avatar {
-    width: 34px; height: 34px;
+    width: 36px; height: 36px;
     border-radius: 50%;
-    overflow: hidden;
-    cursor: pointer;
-    border: 2px solid var(--border);
-    transition: border-color .15s;
-    flex-shrink: 0;
+    background: rgba(255,255,255,.20);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--accent-light);
-    color: var(--accent-text);
-    font-size: 12px;
-    font-weight: 600;
+    cursor: pointer;
+    border: 2px solid rgba(255,255,255,.35);
+    overflow: hidden;
+    flex-shrink: 0;
+    transition: border-color .15s;
 }
-.tb-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.tb-avatar:hover { border-color: var(--accent); }
+.tb-avatar:hover { border-color: rgba(255,255,255,.8); }
+.tb-avatar img   { width: 100%; height: 100%; object-fit: cover; }
 
-/* ---------- DROPDOWN SHARED ---------- */
-.tb-dropdown-wrap { position: relative; }
+/* ── DROPDOWN WRAPPER ── */
+.tb-drop-wrap { position: relative; }
 
-.tb-dropdown {
+/* ── DROPDOWN PANEL ── */
+.tb-drop {
     position: absolute;
+    top: calc(100% + 12px);
     right: 0;
-    top: calc(100% + 10px);
-    background: #fff;
+    background: var(--white);
     border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    box-shadow: 0 8px 28px rgba(0,0,0,.10), 0 2px 8px rgba(0,0,0,.06);
+    border-radius: var(--r-lg);
+    box-shadow: var(--shadow);
     z-index: 9999;
     opacity: 0;
     visibility: hidden;
-    transform: translateY(-6px) scale(.98);
+    transform: translateY(-8px) scale(.97);
     transform-origin: top right;
-    transition: opacity .18s ease, transform .18s ease, visibility .18s;
+    transition: opacity .18s, transform .18s, visibility .18s;
+    overflow: hidden;
 }
-.tb-dropdown.show {
+.tb-drop.open {
     opacity: 1;
     visibility: visible;
     transform: translateY(0) scale(1);
 }
 
-.drop-head {
+#tb-notif-drop { width: var(--drop-notif); }
+#tb-set-drop   { width: var(--drop-set); }
+
+/* ── DROP HEADER ── */
+.tb-drop-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 13px 15px 11px;
+    padding: 13px 16px 11px;
     border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
 }
-.drop-head-title {
+.tb-drop-head-title {
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 700;
     color: var(--text-1);
 }
-.drop-head-action {
+.tb-drop-head-title span {
+    font-weight: 400;
+    color: var(--text-3);
     font-size: 12px;
-    color: var(--accent-text);
+    margin-left: 4px;
+}
+.tb-mark-btn {
+    font-size: 12px;
+    color: var(--accent);
     background: none;
     border: none;
     cursor: pointer;
-    padding: 3px 7px;
+    padding: 4px 8px;
     border-radius: 6px;
     transition: background .12s;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
-.drop-head-action:hover { background: var(--accent-light); }
+.tb-mark-btn:hover { background: var(--accent-lite); }
 
-/* ---------- NOTIFICATION DROPDOWN ---------- */
-#notifDropdown { width: var(--drop-w); right: 0; left: auto; }
+/* ── NOTIF LIST ── */
+.tb-notif-list {
+    max-height: 280px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
 
-.notif-list { max-height: 300px; overflow-y: auto; }
-
-.notif-item {
+.tb-notif-item {
     display: flex;
     align-items: flex-start;
     gap: 10px;
-    padding: 11px 15px;
+    padding: 11px 16px;
     border-bottom: 1px solid #f3f4f6;
-    cursor: default;
     transition: background .12s;
 }
-.notif-item:last-child { border-bottom: none; }
-.notif-item:hover { background: #fafafa; }
+.tb-notif-item:last-child { border-bottom: none; }
+.tb-notif-item:hover { background: #fafafa; }
 
-.notif-icon-wrap {
+.tb-notif-icon {
     width: 32px; height: 32px;
     border-radius: 8px;
+    background: var(--accent-lite);
+    color: var(--accent);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -279,13 +287,9 @@ TOPBAR STYLES
     flex-shrink: 0;
     margin-top: 1px;
 }
-.ni-info    { background: var(--ni-info-bg);    color: var(--ni-info-fg); }
-.ni-success { background: var(--ni-success-bg); color: var(--ni-success-fg); }
-.ni-warning { background: var(--ni-warning-bg); color: var(--ni-warning-fg); }
-.ni-danger  { background: var(--ni-danger-bg);  color: var(--ni-danger-fg); }
 
-.notif-body { flex: 1; min-width: 0; }
-.notif-title {
+.tb-notif-body  { flex: 1; min-width: 0; }
+.tb-notif-title {
     font-size: 13px;
     font-weight: 600;
     color: var(--text-1);
@@ -293,7 +297,7 @@ TOPBAR STYLES
     overflow: hidden;
     text-overflow: ellipsis;
 }
-.notif-msg {
+.tb-notif-msg {
     font-size: 12px;
     color: var(--text-2);
     margin-top: 2px;
@@ -303,13 +307,13 @@ TOPBAR STYLES
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
-.notif-time {
+.tb-notif-time {
     font-size: 11px;
     color: var(--text-3);
     margin-top: 4px;
 }
 
-.notif-dot {
+.tb-notif-dot {
     width: 7px; height: 7px;
     border-radius: 50%;
     background: var(--accent);
@@ -317,114 +321,145 @@ TOPBAR STYLES
     margin-top: 6px;
 }
 
-.notif-empty {
-    padding: 28px 15px;
+.tb-notif-empty {
+    padding: 32px 16px;
     text-align: center;
     font-size: 13px;
     color: var(--text-3);
 }
-.notif-empty i { font-size: 26px; display: block; margin-bottom: 8px; opacity: .45; }
-
-.drop-footer {
-    padding: 10px 15px;
-    border-top: 1px solid var(--border);
+.tb-notif-empty i {
+    font-size: 28px;
+    display: block;
+    margin-bottom: 8px;
+    opacity: .4;
 }
-.drop-footer a {
+
+/* ── DROP FOOTER ── */
+.tb-drop-footer {
+    border-top: 1px solid var(--border);
+    padding: 10px 16px;
+}
+.tb-drop-footer a {
     display: block;
     text-align: center;
     font-size: 12px;
-    color: var(--accent-text);
+    font-weight: 600;
+    color: var(--accent);
     text-decoration: none;
-    padding: 7px;
-    border-radius: var(--radius);
-    background: var(--accent-light);
-    transition: opacity .12s;
+    padding: 8px;
+    border-radius: var(--r);
+    background: var(--accent-lite);
+    transition: background .12s;
+    white-space: nowrap;
 }
-.drop-footer a:hover { opacity: .8; }
+.tb-drop-footer a:hover { background: var(--accent-mid); }
 
-/* ---------- SETTINGS DROPDOWN ---------- */
-#settingsDropdown { width: var(--settings-w); }
-
-.settings-user-card {
+/* ── SETTINGS: USER CARD ── */
+.tb-set-user {
     display: flex;
     align-items: center;
-    gap: 11px;
-    padding: 13px 15px;
+    gap: 12px;
+    padding: 14px 16px;
     border-bottom: 1px solid var(--border);
 }
-.settings-user-avatar {
-    width: 40px; height: 40px;
+.tb-set-avatar {
+    width: 42px; height: 42px;
     border-radius: 50%;
-    overflow: hidden;
-    background: var(--accent-light);
-    color: var(--accent-text);
+    background: var(--accent-lite);
+    color: var(--accent);
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 700;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    border: 2px solid var(--border);
+    border: 2px solid var(--accent-mid);
+    overflow: hidden;
 }
-.settings-user-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.settings-user-name { font-size: 14px; font-weight: 600; color: var(--text-1); }
-.settings-user-role {
+.tb-set-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.tb-set-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.tb-set-role {
     font-size: 11px;
     color: var(--text-3);
     text-transform: capitalize;
-    margin-top: 1px;
+    margin-top: 2px;
 }
 
-.settings-section { padding: 5px 0; border-bottom: 1px solid var(--border); }
-.settings-section:last-child { border-bottom: none; }
-.settings-section-label {
-    padding: 7px 15px 3px;
+/* ── SETTINGS: SECTION ── */
+.tb-set-section { padding: 4px 0; border-bottom: 1px solid var(--border); }
+.tb-set-section:last-child { border-bottom: none; }
+.tb-set-label {
+    padding: 8px 16px 3px;
     font-size: 10px;
-    font-weight: 600;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: .07em;
     color: var(--text-3);
 }
 
-.settings-item {
+/* ── SETTINGS: ITEM ── */
+.tb-set-item {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 8px 15px;
+    padding: 9px 16px;
     cursor: pointer;
     transition: background .12s;
     text-decoration: none;
-    color: inherit;
+    color: var(--text-1);
+    width: 100%;
+    border: none;
+    background: none;
+    text-align: left;
 }
-.settings-item:hover { background: var(--surface); }
+.tb-set-item:hover { background: var(--surface); }
 
-.settings-item-icon {
-    width: 28px; height: 28px;
-    border-radius: 7px;
+.tb-set-item-icon {
+    width: 30px; height: 30px;
+    border-radius: 8px;
     background: var(--surface);
+    border: 1px solid var(--border);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 13px;
     color: var(--text-2);
     flex-shrink: 0;
-    border: 1px solid var(--border);
 }
 
-.settings-item-text { flex: 1; }
-.settings-item-label { font-size: 13px; color: var(--text-1); }
-.settings-item-meta  { font-size: 11px; color: var(--text-3); margin-top: 1px; }
-.settings-item-right { font-size: 12px; color: var(--text-3); }
-
-.settings-item.danger .settings-item-label { color: #dc2626; }
-.settings-item.danger .settings-item-icon  { background: #fef2f2; border-color: #fecaca; color: #dc2626; }
-.settings-item.danger {
+.tb-set-item-text { flex: 1; min-width: 0; }
+.tb-set-item-name {
+    font-size: 13px;
+    color: var(--text-1);
+    font-weight: 500;
     white-space: nowrap;
-}@
+}
+.tb-set-item-sub  {
+    font-size: 11px;
+    color: var(--text-3);
+    margin-top: 1px;
+    white-space: nowrap;
+}
+.tb-set-chevron { font-size: 11px; color: var(--text-3); flex-shrink: 0; }
 
-/* ---- toggle switch ---- */
+/* danger row */
+.tb-set-item.danger .tb-set-item-name  { color: var(--danger); }
+.tb-set-item.danger .tb-set-item-icon  {
+    background: var(--danger-bg);
+    border-color: var(--danger-bd);
+    color: var(--danger);
+}
+
+/* ── TOGGLE ── */
 .tb-toggle {
-    width: 34px; height: 19px;
+    width: 36px; height: 20px;
     border-radius: 10px;
     background: var(--border);
     border: none;
@@ -437,16 +472,16 @@ TOPBAR STYLES
 .tb-toggle::after {
     content: '';
     position: absolute;
-    width: 15px; height: 15px;
+    width: 16px; height: 16px;
     border-radius: 50%;
     background: #fff;
     top: 2px; left: 2px;
     transition: transform .2s;
     box-shadow: 0 1px 3px rgba(0,0,0,.15);
 }
-.tb-toggle.on::after { transform: translateX(15px); }
+.tb-toggle.on::after { transform: translateX(16px); }
 
-/* ---- modal overlay ---- */
+/* ── MODALS ── */
 .tb-modal-bg {
     display: none;
     position: fixed;
@@ -460,7 +495,7 @@ TOPBAR STYLES
 
 .tb-modal {
     background: #fff;
-    border-radius: var(--radius-lg);
+    border-radius: var(--r-lg);
     width: 420px;
     max-width: 95vw;
     box-shadow: 0 20px 60px rgba(0,0,0,.2);
@@ -471,10 +506,10 @@ TOPBAR STYLES
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 15px 18px;
+    padding: 16px 18px;
     border-bottom: 1px solid var(--border);
 }
-.tb-modal-head h4 { font-size: 15px; font-weight: 600; color: var(--text-1); margin: 0; }
+.tb-modal-head h4 { font-size: 15px; font-weight: 700; color: var(--text-1); margin: 0; }
 .tb-modal-close {
     width: 28px; height: 28px;
     border-radius: 6px;
@@ -498,13 +533,11 @@ TOPBAR STYLES
     color: var(--text-2);
     margin-bottom: 5px;
 }
-.tb-form-group input[type="text"],
-.tb-form-group input[type="email"],
-.tb-form-group input[type="password"] {
+.tb-form-group input {
     width: 100%;
-    height: 38px;
+    height: 40px;
     border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border-radius: var(--r);
     padding: 0 12px;
     font-size: 13px;
     color: var(--text-1);
@@ -520,38 +553,38 @@ TOPBAR STYLES
     gap: 14px;
     padding: 14px;
     background: var(--surface);
-    border-radius: var(--radius);
+    border-radius: var(--r);
     border: 1px dashed var(--border);
     margin-bottom: 16px;
 }
 .tb-avatar-preview {
     width: 52px; height: 52px;
     border-radius: 50%;
-    background: var(--accent-light);
-    color: var(--accent-text);
+    background: var(--accent-lite);
+    color: var(--accent);
     font-size: 18px;
-    font-weight: 600;
+    font-weight: 700;
     display: flex; align-items: center; justify-content: center;
     overflow: hidden;
     flex-shrink: 0;
-    border: 2px solid var(--border);
+    border: 2px solid var(--accent-mid);
 }
 .tb-avatar-preview img { width: 100%; height: 100%; object-fit: cover; }
-.tb-avatar-upload-btn {
+.tb-upload-btn {
     display: inline-flex;
     align-items: center;
     gap: 6px;
     padding: 7px 12px;
     font-size: 12px;
-    border-radius: var(--radius);
+    border-radius: var(--r);
     border: 1px solid var(--border);
     background: #fff;
     cursor: pointer;
     color: var(--text-2);
-    transition: border-color .15s;
+    transition: border-color .15s, color .15s;
 }
-.tb-avatar-upload-btn:hover { border-color: var(--accent); color: var(--accent); }
-.tb-avatar-upload-hint { font-size: 11px; color: var(--text-3); margin-top: 3px; }
+.tb-upload-btn:hover { border-color: var(--accent); color: var(--accent); }
+.tb-upload-hint { font-size: 11px; color: var(--text-3); margin-top: 3px; }
 
 .tb-modal-foot {
     display: flex;
@@ -562,8 +595,8 @@ TOPBAR STYLES
     background: var(--surface);
 }
 .tb-btn-ghost {
-    padding: 7px 16px;
-    border-radius: var(--radius);
+    padding: 8px 16px;
+    border-radius: var(--r);
     border: 1px solid var(--border);
     background: #fff;
     font-size: 13px;
@@ -573,26 +606,26 @@ TOPBAR STYLES
 }
 .tb-btn-ghost:hover { background: var(--border); }
 .tb-btn-primary {
-    padding: 7px 16px;
-    border-radius: var(--radius);
+    padding: 8px 16px;
+    border-radius: var(--r);
     border: none;
     background: var(--accent);
     color: #fff;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
-    transition: opacity .12s;
+    transition: background .12s;
 }
-.tb-btn-primary:hover { opacity: .88; }
+.tb-btn-primary:hover { background: var(--accent-dark); }
 
 .tb-alert {
     padding: 9px 12px;
-    border-radius: var(--radius);
+    border-radius: var(--r);
     font-size: 12px;
     margin-bottom: 12px;
     display: none;
 }
-.tb-alert.show { display: block; }
+.tb-alert.show    { display: block; }
 .tb-alert.success { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
 .tb-alert.error   { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
 </style>
@@ -600,159 +633,145 @@ TOPBAR STYLES
 <!-- ============================================================
 TOPBAR HTML
 ============================================================ -->
-
 <header class="topbar">
 
-    <div class="logo-section">
-        <h3>AdHub</h3>
-    </div>
+    <div class="tb-logo">AdHub</div>
 
-    <div class="topbar-icons">
+    <div class="tb-icons">
 
-        <!-- ── NOTIFICATIONS ── -->
-        <div class="tb-dropdown-wrap">
-
-            <button class="tb-btn" id="notifBell" aria-label="Notifications">
+        <!-- NOTIFICATIONS -->
+        <div class="tb-drop-wrap">
+            <button class="tb-btn" id="tb-notif-btn" aria-label="Notifications">
                 <i class="fa-regular fa-bell"></i>
-                <span class="tb-badge <?= $unread_count > 0 ? 'visible' : '' ?>" id="notifBadge">
+                <span class="tb-badge <?= $unread_count > 0 ? 'show' : '' ?>" id="tb-notif-badge">
                     <?= $unread_count > 9 ? '9+' : $unread_count ?>
                 </span>
             </button>
 
-            <div class="tb-dropdown" id="notifDropdown">
-
-                <div class="drop-head">
-                    <span class="drop-head-title">
+            <div class="tb-drop" id="tb-notif-drop">
+                <div class="tb-drop-head">
+                    <span class="tb-drop-head-title">
                         Notifications
-                        <?php if($unread_count > 0): ?>
-                            <span style="font-size:11px;font-weight:400;color:var(--text-3);">(<?= $unread_count ?> unread)</span>
+                        <?php if ($unread_count > 0): ?>
+                            <span>(<?= $unread_count ?> unread)</span>
                         <?php endif; ?>
                     </span>
-                    <?php if($unread_count > 0): ?>
-                        <button class="drop-head-action" id="markAllReadBtn">Mark all read</button>
+                    <?php if ($unread_count > 0): ?>
+                        <button class="tb-mark-btn" id="tb-mark-all">Mark all read</button>
                     <?php endif; ?>
                 </div>
 
-                <div class="notif-list">
-                    <?php if(count($notifications) > 0): ?>
-
-                        <?php foreach($notifications as $notif):
-                            $type = $notif['type'] ?? 'info';
-                        ?>
-                        <div class="notif-item">
-                            <div class="notif-icon-wrap <?= notif_icon_class($type) ?>">
-                                <i class="fa-solid <?= notif_icon($type) ?>"></i>
+                <div class="tb-notif-list">
+                    <?php if (count($notifications) > 0): ?>
+                        <?php foreach ($notifications as $n): ?>
+                        <div class="tb-notif-item">
+                            <div class="tb-notif-icon">
+                                <i class="fa-solid fa-circle-info"></i>
                             </div>
-                            <div class="notif-body">
-                                <div class="notif-title"><?= htmlspecialchars($notif['title']) ?></div>
-                                <div class="notif-msg"><?= htmlspecialchars($notif['message']) ?></div>
-                                <div class="notif-time"><?= date('M d, g:i A', strtotime($notif['created_at'])) ?></div>
+                            <div class="tb-notif-body">
+                                <div class="tb-notif-title"><?= htmlspecialchars($n['title']) ?></div>
+                                <div class="tb-notif-msg"><?= htmlspecialchars($n['message']) ?></div>
+                                <div class="tb-notif-time"><?= date('M d, g:i A', strtotime($n['created_at'])) ?></div>
                             </div>
-                            <?php if(!$notif['is_read']): ?>
-                                <div class="notif-dot"></div>
+                            <?php if (!isset($_SESSION['notif_all_read'])): ?>
+                                <div class="tb-notif-dot"></div>
                             <?php endif; ?>
                         </div>
                         <?php endforeach; ?>
-
                     <?php else: ?>
-                        <div class="notif-empty">
+                        <div class="tb-notif-empty">
                             <i class="fa-regular fa-bell-slash"></i>
                             No notifications yet
                         </div>
                     <?php endif; ?>
                 </div>
 
-                <div class="drop-footer">
-                <?php
-                    $notif_path = ($user_role === 'staff') ? 'admin' : 'client';
-                ?>
-                <a href="/AdHub_V2/<?= $notif_path ?>/notifications/notifications.php">View all notifications</a>
+                <div class="tb-drop-footer">
+                    <a href="/AdHub_V2/<?= $folder ?>/notifications/notifications.php">View all notifications</a>
                 </div>
-
             </div>
         </div>
 
-        <!-- ── SETTINGS GEAR ── -->
-        <div class="tb-dropdown-wrap">
-
-            <button class="tb-btn" id="settingsGear" aria-label="Settings">
+        <!-- SETTINGS -->
+        <div class="tb-drop-wrap">
+            <button class="tb-btn" id="tb-set-btn" aria-label="Settings">
                 <i class="fa-solid fa-gear"></i>
             </button>
 
-            <div class="tb-dropdown" id="settingsDropdown">
+            <div class="tb-drop" id="tb-set-drop">
 
                 <!-- user card -->
-                <div class="settings-user-card">
-                    <div class="settings-user-avatar" id="settingsAvatarThumb">
-                        <?php if($user_pic): ?>
-                            <img src="<?= htmlspecialchars($user_pic) ?>" alt="Profile">
+                <div class="tb-set-user">
+                    <div class="tb-set-avatar" id="tb-set-avatar">
+                        <?php if ($user_pic): ?>
+                            <img src="<?= htmlspecialchars($user_pic) ?>" alt="avatar">
                         <?php else: ?>
                             <?= htmlspecialchars($initials) ?>
                         <?php endif; ?>
                     </div>
                     <div>
-                        <div class="settings-user-name"><?= htmlspecialchars($user_name) ?></div>
-                        <div class="settings-user-role"><?= htmlspecialchars($user_role) ?></div>
+                        <div class="tb-set-name"><?= htmlspecialchars($user_name) ?></div>
+                        <div class="tb-set-role"><?= htmlspecialchars($user_role === 'staff' ? 'Staff' : 'Client') ?></div>
                     </div>
                 </div>
 
-                <!-- Account section -->
-                <div class="settings-section">
-                    <div class="settings-section-label">Account</div>
-
-                    <div class="settings-item" onclick="openModal('profileModal')">
-                        <div class="settings-item-icon"><i class="fa-regular fa-user"></i></div>
-                        <div class="settings-item-text">
-                            <div class="settings-item-label">Edit profile</div>
-                            <div class="settings-item-meta">Name, photo</div>
+                <!-- Account -->
+                <div class="tb-set-section">
+                    <div class="tb-set-label">Account</div>
+                    <div class="tb-set-item" onclick="tbOpenModal('tb-profile-modal')">
+                        <div class="tb-set-item-icon"><i class="fa-regular fa-user"></i></div>
+                        <div class="tb-set-item-text">
+                            <div class="tb-set-item-name">Edit profile</div>
+                            <div class="tb-set-item-sub">Name, photo</div>
                         </div>
-                        <i class="fa-solid fa-chevron-right settings-item-right"></i>
+                        <i class="fa-solid fa-chevron-right tb-set-chevron"></i>
                     </div>
-
-                    <div class="settings-item" onclick="openModal('passwordModal')">
-                        <div class="settings-item-icon"><i class="fa-solid fa-lock"></i></div>
-                        <div class="settings-item-text">
-                            <div class="settings-item-label">Change password</div>
+                    <div class="tb-set-item" onclick="tbOpenModal('tb-password-modal')">
+                        <div class="tb-set-item-icon"><i class="fa-solid fa-lock"></i></div>
+                        <div class="tb-set-item-text">
+                            <div class="tb-set-item-name">Change password</div>
                         </div>
-                        <i class="fa-solid fa-chevron-right settings-item-right"></i>
+                        <i class="fa-solid fa-chevron-right tb-set-chevron"></i>
                     </div>
                 </div>
 
-                <!-- Preferences section -->
-                <div class="settings-section">
-                    <div class="settings-section-label">Preferences</div>
-
-                    <div class="settings-item" style="cursor:default;">
-                        <div class="settings-item-icon"><i class="fa-regular fa-bell"></i></div>
-                        <div class="settings-item-text">
-                            <div class="settings-item-label">Email notifications</div>
+                <!-- Preferences -->
+                <div class="tb-set-section">
+                    <div class="tb-set-label">Preferences</div>
+                    <div class="tb-set-item" style="cursor:default;">
+                        <div class="tb-set-item-icon"><i class="fa-regular fa-bell"></i></div>
+                        <div class="tb-set-item-text">
+                            <div class="tb-set-item-name">Email notifications</div>
                         </div>
-                        <button class="tb-toggle <?= ($_SESSION['email_notif'] ?? 1) ? 'on' : '' ?>"
-                                id="emailToggle"
-                                onclick="togglePref('email_notif', this)"
+                        <button class="tb-toggle on" id="tb-email-toggle"
+                                onclick="tbTogglePref(this)"
                                 aria-label="Toggle email notifications"></button>
                     </div>
                 </div>
 
                 <!-- Sign out -->
-                <div class="settings-section">
-                    <a class="settings-item danger"
-                    href="/AdHub_V2/logout.php"
-                    onclick="return confirm('Sign out of AdHub?')" style="display:flex; align-items:center; gap:10px; text-decoration:none;">
-                        <div class="settings-item-icon"><i class="fa-solid fa-arrow-right-from-bracket"></i></div>
-                        <div class="settings-item-label" style="color:#dc2626;">Sign out</div>
+                <div class="tb-set-section">
+                    <a class="tb-set-item danger"
+                       href="/AdHub_V2/logout.php"
+                       onclick="return confirm('Sign out of AdHub?')">
+                        <div class="tb-set-item-icon">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                        </div>
+                        <div class="tb-set-item-text">
+                            <div class="tb-set-item-name">Sign out</div>
+                        </div>
                     </a>
                 </div>
 
             </div>
         </div>
 
-        <!-- ── AVATAR ── -->
-        <div class="tb-avatar" id="topbarAvatar" onclick="openModal('profileModal')" title="Edit profile">
-            <?php if($user_pic): ?>
-                <img src="<?= htmlspecialchars($user_pic) ?>" alt="Profile" id="topbarAvatarImg">
+        <!-- AVATAR -->
+        <div class="tb-avatar" onclick="tbOpenModal('tb-profile-modal')" title="Edit profile" id="tb-topbar-avatar">
+            <?php if ($user_pic): ?>
+                <img src="<?= htmlspecialchars($user_pic) ?>" alt="avatar">
             <?php else: ?>
-                <span id="topbarAvatarInitials"><?= htmlspecialchars($initials) ?></span>
+                <?= htmlspecialchars($initials) ?>
             <?php endif; ?>
         </div>
 
@@ -763,54 +782,44 @@ TOPBAR HTML
 <!-- ============================================================
 MODAL: EDIT PROFILE
 ============================================================ -->
-<div class="tb-modal-bg" id="profileModal">
+<div class="tb-modal-bg" id="tb-profile-modal">
     <div class="tb-modal">
         <div class="tb-modal-head">
             <h4>Edit profile</h4>
-            <button class="tb-modal-close" onclick="closeModal('profileModal')">
+            <button class="tb-modal-close" onclick="tbCloseModal('tb-profile-modal')">
                 <i class="fa-solid fa-xmark"></i>
             </button>
         </div>
         <div class="tb-modal-body">
-
-            <div class="tb-alert" id="profileAlert"></div>
-
-            <!-- avatar upload -->
+            <div class="tb-alert" id="tb-profile-alert"></div>
             <div class="tb-avatar-upload">
-                <div class="tb-avatar-preview" id="avatarPreview">
-                    <?php if($user_pic): ?>
-                        <img src="<?= htmlspecialchars($user_pic) ?>" id="avatarPreviewImg" alt="Preview">
+                <div class="tb-avatar-preview" id="tb-avatar-preview">
+                    <?php if ($user_pic): ?>
+                        <img src="<?= htmlspecialchars($user_pic) ?>" alt="preview">
                     <?php else: ?>
-                        <span id="avatarPreviewInitials"><?= htmlspecialchars($initials) ?></span>
+                        <?= htmlspecialchars($initials) ?>
                     <?php endif; ?>
                 </div>
                 <div>
-                    <label class="tb-avatar-upload-btn" for="avatarFile">
+                    <label for="tb-avatar-file" class="tb-upload-btn">
                         <i class="fa-solid fa-upload"></i> Upload photo
                     </label>
-                    <input type="file" id="avatarFile" accept="image/*" style="display:none">
-                    <div class="tb-avatar-hint">JPG, PNG or GIF · max 2 MB</div>
+                    <input type="file" id="tb-avatar-file" accept="image/*" style="display:none">
+                    <div class="tb-upload-hint">JPG, PNG or GIF · max 2 MB</div>
                 </div>
             </div>
-
-            <form id="profileForm">
-                <div class="tb-form-group">
-                    <label>Full name</label>
-                    <input type="text" name="name" id="profileName"
-                           value="<?= htmlspecialchars($user_name) ?>"
-                           placeholder="Your name">
-                </div>
-                <div class="tb-form-group">
-                    <label>Email</label>
-                    <input type="email" name="email" id="profileEmail"
-                           value="<?= htmlspecialchars($_SESSION['email'] ?? '') ?>"
-                           placeholder="your@email.com">
-                </div>
-            </form>
+            <div class="tb-form-group">
+                <label for="tb-profile-name">Full name</label>
+                <input type="text" id="tb-profile-name" value="<?= htmlspecialchars($user_name) ?>" placeholder="Your name">
+            </div>
+            <div class="tb-form-group">
+                <label for="tb-profile-email">Email</label>
+                <input type="email" id="tb-profile-email" value="<?= htmlspecialchars($_SESSION['email'] ?? '') ?>" placeholder="your@email.com">
+            </div>
         </div>
         <div class="tb-modal-foot">
-            <button class="tb-btn-ghost" onclick="closeModal('profileModal')">Cancel</button>
-            <button class="tb-btn-primary" onclick="saveProfile()">Save changes</button>
+            <button class="tb-btn-ghost" onclick="tbCloseModal('tb-profile-modal')">Cancel</button>
+            <button class="tb-btn-primary" onclick="tbSaveProfile()">Save changes</button>
         </div>
     </div>
 </div>
@@ -819,36 +828,32 @@ MODAL: EDIT PROFILE
 <!-- ============================================================
 MODAL: CHANGE PASSWORD
 ============================================================ -->
-<div class="tb-modal-bg" id="passwordModal">
+<div class="tb-modal-bg" id="tb-password-modal">
     <div class="tb-modal">
         <div class="tb-modal-head">
             <h4>Change password</h4>
-            <button class="tb-modal-close" onclick="closeModal('passwordModal')">
+            <button class="tb-modal-close" onclick="tbCloseModal('tb-password-modal')">
                 <i class="fa-solid fa-xmark"></i>
             </button>
         </div>
         <div class="tb-modal-body">
-
-            <div class="tb-alert" id="passwordAlert"></div>
-
-            <form id="passwordForm" autocomplete="off">
-                <div class="tb-form-group">
-                    <label>Current password</label>
-                    <input type="password" name="current_password" id="currentPassword" placeholder="••••••••">
-                </div>
-                <div class="tb-form-group">
-                    <label>New password</label>
-                    <input type="password" name="new_password" id="newPassword" placeholder="••••••••">
-                </div>
-                <div class="tb-form-group">
-                    <label>Confirm new password</label>
-                    <input type="password" name="confirm_password" id="confirmPassword" placeholder="••••••••">
-                </div>
-            </form>
+            <div class="tb-alert" id="tb-password-alert"></div>
+            <div class="tb-form-group">
+                <label for="tb-curr-pass">Current password</label>
+                <input type="password" id="tb-curr-pass" placeholder="••••••••" autocomplete="off">
+            </div>
+            <div class="tb-form-group">
+                <label for="tb-new-pass">New password</label>
+                <input type="password" id="tb-new-pass" placeholder="••••••••" autocomplete="off">
+            </div>
+            <div class="tb-form-group">
+                <label for="tb-confirm-pass">Confirm new password</label>
+                <input type="password" id="tb-confirm-pass" placeholder="••••••••" autocomplete="off">
+            </div>
         </div>
         <div class="tb-modal-foot">
-            <button class="tb-btn-ghost" onclick="closeModal('passwordModal')">Cancel</button>
-            <button class="tb-btn-primary" onclick="savePassword()">Update password</button>
+            <button class="tb-btn-ghost" onclick="tbCloseModal('tb-password-modal')">Cancel</button>
+            <button class="tb-btn-primary" onclick="tbSavePassword()">Update password</button>
         </div>
     </div>
 </div>
@@ -861,60 +866,65 @@ SCRIPTS
 (function () {
 
     /* ── dropdown toggle ── */
-    const dropMap = {
-        notifBell:    'notifDropdown',
-        settingsGear: 'settingsDropdown',
+    const drops = {
+        'tb-notif-btn': 'tb-notif-drop',
+        'tb-set-btn':   'tb-set-drop',
     };
 
-    Object.entries(dropMap).forEach(([btnId, dropId]) => {
-        const btn  = document.getElementById(btnId);
-        const drop = document.getElementById(dropId);
-
-        btn.addEventListener('click', (e) => {
+    Object.entries(drops).forEach(([btnId, dropId]) => {
+        document.getElementById(btnId).addEventListener('click', function (e) {
             e.stopPropagation();
-            const isOpen = drop.classList.contains('show');
-            closeAllDropdowns();
+            const drop   = document.getElementById(dropId);
+            const isOpen = drop.classList.contains('open');
+            closeAll();
             if (!isOpen) {
-                drop.classList.add('show');
-                btn.classList.add('is-open');
+                drop.classList.add('open');
+                this.classList.add('active');
             }
         });
     });
 
-    document.addEventListener('click', closeAllDropdowns);
+    document.addEventListener('click', closeAll);
 
-    function closeAllDropdowns() {
-        document.querySelectorAll('.tb-dropdown').forEach(d => d.classList.remove('show'));
-        document.querySelectorAll('.tb-btn').forEach(b => b.classList.remove('is-open'));
+    function closeAll() {
+        document.querySelectorAll('.tb-drop').forEach(d => d.classList.remove('open'));
+        document.querySelectorAll('.tb-btn').forEach(b => b.classList.remove('active'));
     }
 
     /* ── mark all read ── */
-    const markBtn = document.getElementById('markAllReadBtn');
+    const markBtn = document.getElementById('tb-mark-all');
     if (markBtn) {
-        markBtn.addEventListener('click', () => {
+        markBtn.addEventListener('click', function () {
             fetch('?mark_all_read=1')
                 .then(r => r.json())
                 .then(() => {
-                    document.querySelectorAll('.notif-dot').forEach(d => d.remove());
-                    document.getElementById('notifBadge').classList.remove('visible');
-                    markBtn.style.display = 'none';
+                    document.querySelectorAll('.tb-notif-dot').forEach(d => d.remove());
+                    const badge = document.getElementById('tb-notif-badge');
+                    badge.classList.remove('show');
+                    badge.textContent = '0';
+                    this.style.display = 'none';
+                    document.querySelector('.tb-drop-head-title span') &&
+                        (document.querySelector('.tb-drop-head-title span').style.display = 'none');
                 });
         });
     }
 
     /* ── modals ── */
-    window.openModal = function (id) {
-        closeAllDropdowns();
+    window.tbOpenModal = function (id) {
+        closeAll();
         document.getElementById(id).classList.add('open');
     };
-    window.closeModal = function (id) {
+    window.tbCloseModal = function (id) {
         document.getElementById(id).classList.remove('open');
         clearAlerts();
     };
 
     document.querySelectorAll('.tb-modal-bg').forEach(bg => {
-        bg.addEventListener('click', e => {
-            if (e.target === bg) bg.classList.remove('open');
+        bg.addEventListener('click', function (e) {
+            if (e.target === this) {
+                this.classList.remove('open');
+                clearAlerts();
+            }
         });
     });
 
@@ -939,117 +949,114 @@ SCRIPTS
     }
 
     /* ── avatar preview ── */
-    document.getElementById('avatarFile').addEventListener('change', function () {
+    document.getElementById('tb-avatar-file').addEventListener('change', function () {
         const file = this.files[0];
         if (!file) return;
         if (file.size > 2 * 1024 * 1024) {
-            showAlert('profileAlert', 'error', 'File too large. Maximum size is 2 MB.');
+            showAlert('tb-profile-alert', 'error', 'File too large. Max 2 MB.');
             return;
         }
         const reader = new FileReader();
         reader.onload = e => {
-            const src = e.target.result;
-            const preview = document.getElementById('avatarPreview');
-            preview.innerHTML = '<img src="' + src + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
+            document.getElementById('tb-avatar-preview').innerHTML =
+                '<img src="' + e.target.result + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
         };
         reader.readAsDataURL(file);
     });
 
     /* ── save profile ── */
-    window.saveProfile = function () {
-        const name  = document.getElementById('profileName').value.trim();
-        const email = document.getElementById('profileEmail').value.trim();
-        const file  = document.getElementById('avatarFile').files[0];
+    window.tbSaveProfile = function () {
+        const name  = document.getElementById('tb-profile-name').value.trim();
+        const email = document.getElementById('tb-profile-email').value.trim();
+        const file  = document.getElementById('tb-avatar-file').files[0];
 
-        if (!name) { showAlert('profileAlert', 'error', 'Name cannot be empty.'); return; }
-        if (!email) { showAlert('profileAlert', 'error', 'Email cannot be empty.'); return; }
+        if (!name)  { showAlert('tb-profile-alert', 'error', 'Name cannot be empty.');  return; }
+        if (!email) { showAlert('tb-profile-alert', 'error', 'Email cannot be empty.'); return; }
 
         const fd = new FormData();
         fd.append('action', 'update_profile');
-        fd.append('name', name);
-        fd.append('email', email);
+        fd.append('name',   name);
+        fd.append('email',  email);
         if (file) fd.append('avatar', file);
 
         fetch('/AdHub_V2/ajax/user_settings.php', { method: 'POST', body: fd })
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
-                    showAlert('profileAlert', 'success', 'Profile updated successfully.');
-                    /* update topbar avatar live */
-                    updateTopbarAvatar(name, data.avatar_url ?? null);
-                    setTimeout(() => closeModal('profileModal'), 1200);
+                    showAlert('tb-profile-alert', 'success', 'Profile updated successfully.');
+                    tbUpdateAvatar(name, data.avatar_url ?? null);
+                    setTimeout(() => tbCloseModal('tb-profile-modal'), 1200);
                 } else {
-                    showAlert('profileAlert', 'error', data.message ?? 'Something went wrong.');
+                    showAlert('tb-profile-alert', 'error', data.message ?? 'Something went wrong.');
                 }
             })
-            .catch(() => showAlert('profileAlert', 'error', 'Network error. Please try again.'));
+            .catch(() => showAlert('tb-profile-alert', 'error', 'Network error. Please try again.'));
     };
 
     /* ── save password ── */
-    window.savePassword = function () {
-        const curr    = document.getElementById('currentPassword').value;
-        const newPass = document.getElementById('newPassword').value;
-        const confirm = document.getElementById('confirmPassword').value;
+    window.tbSavePassword = function () {
+        const curr    = document.getElementById('tb-curr-pass').value;
+        const newPass = document.getElementById('tb-new-pass').value;
+        const confirm = document.getElementById('tb-confirm-pass').value;
 
         if (!curr || !newPass || !confirm) {
-            showAlert('passwordAlert', 'error', 'Please fill in all fields.');
+            showAlert('tb-password-alert', 'error', 'Please fill in all fields.');
             return;
         }
         if (newPass.length < 8) {
-            showAlert('passwordAlert', 'error', 'New password must be at least 8 characters.');
+            showAlert('tb-password-alert', 'error', 'New password must be at least 8 characters.');
             return;
         }
         if (newPass !== confirm) {
-            showAlert('passwordAlert', 'error', 'Passwords do not match.');
+            showAlert('tb-password-alert', 'error', 'Passwords do not match.');
             return;
         }
 
         const fd = new FormData();
-        fd.append('action', 'change_password');
+        fd.append('action',           'change_password');
         fd.append('current_password', curr);
-        fd.append('new_password', newPass);
+        fd.append('new_password',     newPass);
 
         fetch('/AdHub_V2/ajax/user_settings.php', { method: 'POST', body: fd })
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
-                    showAlert('passwordAlert', 'success', 'Password updated.');
-                    document.getElementById('passwordForm').reset();
-                    setTimeout(() => closeModal('passwordModal'), 1200);
+                    showAlert('tb-password-alert', 'success', 'Password updated.');
+                    document.getElementById('tb-curr-pass').value    = '';
+                    document.getElementById('tb-new-pass').value     = '';
+                    document.getElementById('tb-confirm-pass').value = '';
+                    setTimeout(() => tbCloseModal('tb-password-modal'), 1200);
                 } else {
-                    showAlert('passwordAlert', 'error', data.message ?? 'Incorrect current password.');
+                    showAlert('tb-password-alert', 'error', data.message ?? 'Incorrect current password.');
                 }
             })
-            .catch(() => showAlert('passwordAlert', 'error', 'Network error. Please try again.'));
+            .catch(() => showAlert('tb-password-alert', 'error', 'Network error. Please try again.'));
     };
 
-    /* ── email notification toggle ── */
-    window.togglePref = function (pref, btn) {
+    /* ── email toggle ── */
+    window.tbTogglePref = function (btn) {
         btn.classList.toggle('on');
         const val = btn.classList.contains('on') ? 1 : 0;
         fetch('/AdHub_V2/ajax/user_settings.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: 'action=toggle_pref&pref=' + pref + '&value=' + val
+            body:    'action=toggle_pref&pref=email_notif&value=' + val
         });
     };
 
-    /* ── update topbar avatar after save ── */
-    function updateTopbarAvatar(name, avatarUrl) {
+    /* ── live avatar update after profile save ── */
+    function tbUpdateAvatar(name, avatarUrl) {
         const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-
-        ['topbarAvatar', 'settingsAvatarThumb'].forEach(id => {
+        const targets  = ['tb-topbar-avatar', 'tb-set-avatar'];
+        targets.forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
-            if (avatarUrl) {
-                el.innerHTML = '<img src="' + avatarUrl + '" style="width:100%;height:100%;object-fit:cover;">';
-            } else {
-                el.innerHTML = '<span>' + initials + '</span>';
-            }
+            el.innerHTML = avatarUrl
+                ? '<img src="' + avatarUrl + '" style="width:100%;height:100%;object-fit:cover;">'
+                : initials;
         });
-
-        const nameEls = document.querySelectorAll('.settings-user-name');
-        nameEls.forEach(el => el.textContent = name);
+        document.querySelector('.tb-set-name') &&
+            (document.querySelector('.tb-set-name').textContent = name);
     }
 
 })();
