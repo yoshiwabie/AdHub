@@ -4,6 +4,7 @@ session_start();
 include('../../config/db.php');
 include('../../config/queries.php');
 include('../../includes/topbar.php');
+include('../../includes/topbar.php');
 
 if(!isset($_SESSION['user_id'])){
     header("Location: ../../index.php");
