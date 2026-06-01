@@ -6,12 +6,12 @@ include('../../config/queries.php');
 include('../../includes/topbar.php');
 
 if(!isset($_SESSION['user_id'])){
-    header("Location: ../../index.php");
+    header("Location: index.php");
     exit();
 }
 
 if($_SESSION['role'] != 'staff'){
-    header("Location: ../../index.php");
+    header("Location: index.php");
     exit();
 }
 

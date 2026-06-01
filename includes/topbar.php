@@ -752,7 +752,7 @@ TOPBAR HTML
                 <!-- Sign out -->
                 <div class="tb-set-section">
                     <a class="tb-set-item danger"
-                       href="/AdHub_V2/logout.php"
+                       href="/AdHub_V2/auth/logout.php"
                        onclick="return confirm('Sign out of AdHub?')">
                         <div class="tb-set-item-icon">
                             <i class="fa-solid fa-arrow-right-from-bracket"></i>
