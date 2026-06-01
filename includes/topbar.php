@@ -11,9 +11,11 @@ SESSION DATA
 ========================================
 */
 $user_id   = $_SESSION['user_id']   ?? 0;
-$user_name = $_SESSION['user_name'] ?? 'User';
+$_SESSION['user_name']   = $user['name'];
+$_SESSION['email']       = $user['email'];
+$_SESSION['profile_pic'] = $user['profile_img'];
 $user_role = $_SESSION['role']      ?? 'client';
-$user_pic  = $_SESSION['profile_pic'] ?? null;
+$_SESSION['profile_pic'] = $row['profile_img'] ?? null;
 
 $initials = strtoupper(implode('', array_map(fn($w) => $w[0], explode(' ', trim($user_name)))));
 $initials = substr($initials, 0, 2);
@@ -253,7 +255,7 @@ TOPBAR STYLES
 .drop-head-action:hover { background: var(--accent-light); }
 
 /* ---------- NOTIFICATION DROPDOWN ---------- */
-#notifDropdown { width: var(--drop-w); }
+#notifDropdown { width: var(--drop-w); right: 0; left: auto; }
 
 .notif-list { max-height: 300px; overflow-y: auto; }
 
@@ -418,6 +420,9 @@ TOPBAR STYLES
 
 .settings-item.danger .settings-item-label { color: #dc2626; }
 .settings-item.danger .settings-item-icon  { background: #fef2f2; border-color: #fecaca; color: #dc2626; }
+.settings-item.danger {
+    white-space: nowrap;
+}@
 
 /* ---- toggle switch ---- */
 .tb-toggle {
@@ -733,7 +738,7 @@ TOPBAR HTML
                 <!-- Sign out -->
                 <div class="settings-section">
                     <a class="settings-item danger"
-                       href="/AdHub_V2/logout.php"
+                       href="/AdHub_V2/auth/logout.php"
                        onclick="return confirm('Sign out of AdHub?')">
                         <div class="settings-item-icon"><i class="fa-solid fa-arrow-right-from-bracket"></i></div>
                         <div class="settings-item-text">
