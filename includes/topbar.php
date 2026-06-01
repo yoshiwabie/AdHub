@@ -11,11 +11,9 @@ SESSION DATA
 ========================================
 */
 $user_id   = $_SESSION['user_id']   ?? 0;
-$_SESSION['user_name']   = $user['name'];
-$_SESSION['email']       = $user['email'];
-$_SESSION['profile_pic'] = $user['profile_img'];
+$user_name = $_SESSION['name']      ?? 'User';
 $user_role = $_SESSION['role']      ?? 'client';
-$_SESSION['profile_pic'] = $row['profile_img'] ?? null;
+$user_pic  = $_SESSION['profile_pic'] ?? null;
 
 $initials = strtoupper(implode('', array_map(fn($w) => $w[0], explode(' ', trim($user_name)))));
 $initials = substr($initials, 0, 2);
@@ -665,9 +663,10 @@ TOPBAR HTML
                 </div>
 
                 <div class="drop-footer">
-                    <a href="/AdHub_V2/<?= $user_role ?>/notifications/notifications.php">
-                        View all notifications
-                    </a>
+                <?php
+                    $notif_path = ($user_role === 'staff') ? 'admin' : 'client';
+                ?>
+                <a href="/AdHub_V2/<?= $notif_path ?>/notifications/notifications.php">View all notifications</a>
                 </div>
 
             </div>
@@ -738,12 +737,10 @@ TOPBAR HTML
                 <!-- Sign out -->
                 <div class="settings-section">
                     <a class="settings-item danger"
-                       href="/AdHub_V2/auth/logout.php"
-                       onclick="return confirm('Sign out of AdHub?')">
+                    href="/AdHub_V2/logout.php"
+                    onclick="return confirm('Sign out of AdHub?')" style="display:flex; align-items:center; gap:10px; text-decoration:none;">
                         <div class="settings-item-icon"><i class="fa-solid fa-arrow-right-from-bracket"></i></div>
-                        <div class="settings-item-text">
-                            <div class="settings-item-label">Sign out</div>
-                        </div>
+                        <div class="settings-item-label" style="color:#dc2626;">Sign out</div>
                     </a>
                 </div>
 
