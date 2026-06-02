@@ -57,7 +57,6 @@ $notifications = mysqli_query($conn,"
 
 .main-content {
     margin-left: 260px;
-    margin-top: 75px;
     padding: 35px;
 }
 

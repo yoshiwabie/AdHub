@@ -135,6 +135,7 @@ $statusColors = [
     'completed' => ['bg' => '#f0fdf4', 'color' => '#16a34a', 'label' => 'Completed'],
 ];
 $sc = $statusColors[$status] ?? ['bg' => '#f1f5f9', 'color' => '#64748b', 'label' => ucfirst($status)];
+
 ?>
 
 <!DOCTYPE html>
@@ -154,7 +155,6 @@ $sc = $statusColors[$status] ?? ['bg' => '#f1f5f9', 'color' => '#64748b', 'label
 
 .main-content{
     margin-left:260px;
-    margin-top:75px;
     padding:35px;
 }
 

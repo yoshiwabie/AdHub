@@ -147,11 +147,10 @@ body {
     background: #f1f5f9;
 }
 
-.main-content {
-    margin-left: 260px;
-    margin-top: 75px;
-    padding: 40px 35px;
-    min-height: calc(100vh - 75px);
+.main-content { 
+    margin-left:260px; 
+    padding:40px 35px; 
+    min-height:calc(100vh - 60px); 
 }
 
 /* ── PAGE HEADER ── */

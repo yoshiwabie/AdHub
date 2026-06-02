@@ -131,7 +131,6 @@ $budget_percent = $budget > 0 ? round(($total_spent / $budget) * 100) : 0;
 
 .main-content {
     margin-left: 260px;
-    margin-top: 75px;
     padding: 35px;
 }
 
@@ -400,6 +399,11 @@ $budget_percent = $budget > 0 ? round(($total_spent / $budget) * 100) : 0;
         </div>
 
         <div class="d-flex gap-2 flex-wrap align-items-center">
+
+            <a href="../campaigns/campaign_notes.php?id=<?= $campaign_id; ?>"
+                class="btn btn-info btn-sm text-white">
+                    <i class="fa-solid fa-message"></i> View Notes
+            </a>
 
             <a href="../campaigns/review_asset.php?id=<?= $campaign_id; ?>"
                class="btn btn-outline-light btn-sm">

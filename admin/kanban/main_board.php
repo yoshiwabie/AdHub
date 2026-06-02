@@ -202,9 +202,8 @@ $completed = getCampaigns($conn, 'completed', $staffCondition);
 
 /* ── LAYOUT ── */
 .main-content{
-    margin-left:260px;
-    margin-top:75px;
-    padding:35px;
+    margin-left:260px; 
+    padding:35px; 
 }
 
 /* ── HEADER ── */

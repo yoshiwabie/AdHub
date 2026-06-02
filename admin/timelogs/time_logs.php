@@ -137,8 +137,7 @@ $default_rate = mysqli_fetch_assoc(mysqli_query($conn,"
 <style>
 
 .main-content{
-    margin-left:260px;
-    margin-top:75px;
+    margin-left:260px; 
     padding:35px;
 }
 

@@ -72,6 +72,7 @@ while($row = mysqli_fetch_assoc($campaignQuery)){
 }
 
 $overBudgetCount = count(array_filter($campaigns, fn($c) => $c['balance'] < 0));
+
 ?>
 
 <!DOCTYPE html>
@@ -92,7 +93,6 @@ $overBudgetCount = count(array_filter($campaigns, fn($c) => $c['balance'] < 0));
 
 .main-content {
     margin-left: 260px;
-    margin-top: 75px;
     padding: 35px;
 }
 

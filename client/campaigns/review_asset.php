@@ -2,7 +2,6 @@
 session_start();
 
 include('../../config/db.php');
-include('../../includes/topbar.php');
 
 if(!isset($_SESSION['user_id'])){
     header("Location: ../../index.php");
@@ -233,6 +232,8 @@ if($selected_asset){
         ORDER BY a.created_at DESC
     ");
 }
+
+include('../../includes/topbar.php');
 ?>
 
 <!DOCTYPE html>
@@ -256,7 +257,6 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
 .main-content{
     margin-left:260px;
-    margin-top:75px;
     padding:35px;
 }
 

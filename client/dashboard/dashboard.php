@@ -95,6 +95,7 @@ $notifications = mysqli_query($conn,"
     ORDER BY created_at DESC
     LIMIT 5
 ");
+
 ?>
  
 <!DOCTYPE html>

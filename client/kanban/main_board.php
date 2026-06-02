@@ -174,6 +174,7 @@ $planning  = getClientCampaigns($conn, 'planning',  $user_id);
 $active    = getClientCampaigns($conn, 'active',    $user_id);
 $review    = getClientCampaigns($conn, 'review',    $user_id);
 $completed = getClientCampaigns($conn, 'completed', $user_id);
+
 ?>
 
 <!DOCTYPE html>
@@ -193,8 +194,7 @@ $completed = getClientCampaigns($conn, 'completed', $user_id);
 
 /* ── LAYOUT ── */
 .main-content {
-    margin-left: 260px;
-    margin-top: 75px;
+    margin-left: 260px
     padding: 35px;
 }
 
