@@ -388,9 +388,9 @@ $sc = $statusColors[$status] ?? ['bg' => '#f1f5f9', 'color' => '#64748b', 'label
             Campaigns
         </a>
 
-        <a href="../timelogs/time_logs.php">
-            <i class="fa-regular fa-clock"></i>
-            Time Logs
+        <a href="../retainer/retainer.php">
+            <i class="fa-solid fa-wallet"></i>
+            Retainer
         </a>
 
         <a href="../notifications/notifications.php">

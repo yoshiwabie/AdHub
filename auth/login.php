@@ -22,6 +22,13 @@ if(isset($_POST['login'])){
             $_SESSION['name']       = $user['name'];
             $_SESSION['email']      = $user['email'];
             $_SESSION['role']       = $user['role'];
+            $_SESSION['is_admin']   = (bool)$user['is_admin'];
+
+            // Block deactivated accounts
+            if(!$user['is_active']) {
+                $_SESSION['error'] = "This account has been deactivated.";
+                header("Location: ../index.php"); exit();
+            }
 
             // ── Avatar: check if BLOB data exists in DB ──
             $uid        = intval($user['user_id']);

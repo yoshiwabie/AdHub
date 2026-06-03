@@ -16,7 +16,7 @@ if($_SESSION['role'] != 'client'){
 
 $user_id     = $_SESSION['user_id'];
 $campaign_id = $_GET['id'] ?? 0;
-$marked      = isset($_GET['marked']); // success flag after redirect
+$marked      = isset($_GET['marked']);
 
 /*
 ========================================
@@ -415,6 +415,13 @@ $budget_percent = $budget > 0 ? round(($total_spent / $budget) * 100) : 0;
                 <i class="fa-solid fa-file-pdf"></i> Report
             </a>
 
+            <?php if(!$isCompleted): ?>
+            <a href="../campaigns/edit_campaign.php?id=<?= $campaign_id; ?>"
+               class="btn btn-secondary btn-sm">
+                <i class="fa-solid fa-pen-to-square"></i> Edit Campaign
+            </a>
+            <?php endif; ?>
+
             <?php if($isCompleted): ?>
                 <div class="btn-completed-tag">
                     <i class="fa-solid fa-circle-check"></i>
@@ -777,7 +784,6 @@ new Chart(document.getElementById('budgetChart'), {
 });
 
 <?php if($marked): ?>
-/* Auto-hide toast after 4s */
 setTimeout(() => {
     const toast = document.querySelector('.success-toast');
     if(toast) toast.remove();
