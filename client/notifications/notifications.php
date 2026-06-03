@@ -176,7 +176,7 @@ $unread = mysqli_fetch_assoc(mysqli_query($conn, "
 <div class="sidebar">
     <div class="sidebar-menu">
         <a href="../dashboard/dashboard.php"><i class="fa-solid fa-table-columns"></i> Dashboard</a>
-        <a href="../campaigns/my_campaigns.php"><i class="fa-solid fa-layer-group"></i> Campaigns</a>
+        <a href="../kanban/main_board.php"><i class="fa-solid fa-layer-group"></i> Campaigns</a>
         <a href="../retainer/retainer.php"><i class="fa-solid fa-wallet"></i> Retainer</a>
         <a href="notifications.php" class="active"><i class="fa-regular fa-bell"></i> Notifications</a>
         <a href="../../auth/logout.php"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>

@@ -2,7 +2,6 @@
 session_start();
 
 include('../../config/db.php');
-include('../../includes/topbar.php');
 
 if(!isset($_SESSION['user_id'])){
     header("Location: ../../index.php");
@@ -28,6 +27,19 @@ if(isset($_POST['save_log'])){
     $hours        = mysqli_real_escape_string($conn, $_POST['hours']);
     $log_date     = mysqli_real_escape_string($conn, $_POST['log_date']);
     $hourly_rate  = mysqli_real_escape_string($conn, $_POST['hourly_rate']);
+
+    // Block logging on completed campaigns
+    $campCheck = mysqli_fetch_assoc(mysqli_query($conn,"
+        SELECT status FROM campaigns
+        WHERE campaign_id = '$campaign_id'
+        AND assigned_staff_id = '$user_id'
+        LIMIT 1
+    "));
+
+    if(!$campCheck || $campCheck['status'] === 'completed'){
+        $_SESSION['error'] = "Time cannot be logged for a completed campaign.";
+        header("Location: time_logs.php"); exit();
+    }
 
     if($log_date < date('Y-m-d')){
         $_SESSION['error'] = "You cannot log time for a past date.";
@@ -78,6 +90,7 @@ CAMPAIGNS
 $campaigns = mysqli_query($conn,"
     SELECT * FROM campaigns
     WHERE assigned_staff_id = '$user_id'
+    AND status != 'completed'
     ORDER BY campaign_name ASC
 ");
 
@@ -119,6 +132,8 @@ HOURLY RATE
 $default_rate = mysqli_fetch_assoc(mysqli_query($conn,"
     SELECT hourly_rate FROM users WHERE user_id = '$user_id'
 "))['hourly_rate'] ?? 500;
+
+include('../../includes/topbar.php');
 ?>
 
 <!DOCTYPE html>
@@ -432,14 +447,29 @@ $default_rate = mysqli_fetch_assoc(mysqli_query($conn,"
 
                 <div class="col-md-4">
                     <label class="form-label">Campaign</label>
-                    <select name="campaign_id" class="form-select" required>
-                        <option value="">Select Campaign</option>
-                        <?php while($camp = mysqli_fetch_assoc($campaigns)) { ?>
+                    <?php
+                    $campaignList = [];
+                    while($camp = mysqli_fetch_assoc($campaigns)) {
+                        $campaignList[] = $camp;
+                    }
+                    ?>
+                    <select name="campaign_id" class="form-select" required
+                            <?= empty($campaignList) ? 'disabled' : ''; ?>>
+                        <option value="">
+                            <?= empty($campaignList) ? 'No active campaigns' : 'Select Campaign'; ?>
+                        </option>
+                        <?php foreach($campaignList as $camp): ?>
                             <option value="<?= $camp['campaign_id']; ?>">
                                 <?= htmlspecialchars($camp['campaign_name']); ?>
                             </option>
-                        <?php } ?>
+                        <?php endforeach; ?>
                     </select>
+                    <?php if(empty($campaignList)): ?>
+                        <div class="mt-2" style="font-size:12px; color:#94a3b8;">
+                            <i class="fa-solid fa-lock me-1"></i>
+                            All your assigned campaigns are completed. Time logging is disabled.
+                        </div>
+                    <?php endif; ?>
                 </div>
 
                 <div class="col-md-2">

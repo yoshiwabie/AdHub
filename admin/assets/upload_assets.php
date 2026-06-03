@@ -2,7 +2,6 @@
 session_start();
 
 include('../../config/db.php');
-include('../../includes/topbar.php');
 
 if(!isset($_SESSION['user_id']) || $_SESSION['role'] != 'staff'){
     header("Location: ../../index.php");
@@ -123,6 +122,8 @@ if(isset($_POST['upload'])){
 $milestones = mysqli_query($conn,"
     SELECT * FROM milestones WHERE campaign_id='$campaign_id' ORDER BY milestone_id ASC
 ");
+
+include('../../includes/topbar.php');
 ?>
 <!DOCTYPE html>
 <html lang="en">
