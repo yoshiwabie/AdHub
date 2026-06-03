@@ -21,7 +21,7 @@ switch ($action) {
             SET is_read = 1
             WHERE notification_id = $id AND user_id = $user_id
         ");
-        echo json_encode(['success' => true]);
+        echo json_encode(['success' => true, 'reload' => true]);
         break;
 
     case 'mark_all_read':
@@ -30,7 +30,7 @@ switch ($action) {
             SET is_read = 1
             WHERE user_id = $user_id AND deleted_at IS NULL
         ");
-        echo json_encode(['success' => true]);
+        echo json_encode(['success' => true, 'reload' => true]);
         break;
 
     case 'delete':
@@ -40,7 +40,7 @@ switch ($action) {
             SET deleted_at = NOW()
             WHERE notification_id = $id AND user_id = $user_id
         ");
-        echo json_encode(['success' => true]);
+        echo json_encode(['success' => true, 'reload' => true]);
         break;
 
     default:

@@ -13,7 +13,9 @@ SESSION DATA
 $user_id   = $_SESSION['user_id'] ?? 0;
 $user_name = $_SESSION['name']    ?? 'User';
 $user_role = $_SESSION['role']    ?? 'client';
-$user_pic  = $_SESSION['profile_pic'] ?? null;
+$user_pic = $_SESSION['has_avatar'] ?? false
+    ? '/AdHub_V2/ajax/get_avatar.php?id=' . $user_id
+    : null;
 
 $initials = 'U';
 if (!empty(trim($user_name))) {
@@ -704,7 +706,7 @@ TOPBAR HTML
                 <div class="tb-set-user">
                     <div class="tb-set-avatar" id="tb-set-avatar">
                         <?php if ($user_pic): ?>
-                            <img src="<?= htmlspecialchars($user_pic) ?>" alt="avatar">
+                            <img src="/AdHub_V2/ajax/get_avatar.php?id=<?= $user_id ?>">
                         <?php else: ?>
                             <?= htmlspecialchars($initials) ?>
                         <?php endif; ?>
@@ -895,17 +897,18 @@ SCRIPTS
     const markBtn = document.getElementById('tb-mark-all');
     if (markBtn) {
         markBtn.addEventListener('click', function () {
-            fetch('?mark_all_read=1')
-                .then(r => r.json())
-                .then(() => {
-                    document.querySelectorAll('.tb-notif-dot').forEach(d => d.remove());
-                    const badge = document.getElementById('tb-notif-badge');
-                    badge.classList.remove('show');
-                    badge.textContent = '0';
-                    this.style.display = 'none';
-                    document.querySelector('.tb-drop-head-title span') &&
-                        (document.querySelector('.tb-drop-head-title span').style.display = 'none');
-                });
+        fetch('?mark_all_read=1')
+            .then(r => r.json())
+            .then(data => {
+                document.querySelectorAll('.tb-notif-dot').forEach(d => d.remove());
+                const badge = document.getElementById('tb-notif-badge');
+                badge.classList.remove('show');
+                badge.textContent = '0';
+                this.style.display = 'none';
+                document.querySelector('.tb-drop-head-title span') &&
+                    (document.querySelector('.tb-drop-head-title span').style.display = 'none');
+                if (data.reload) setTimeout(() => location.reload(), 600);
+            });
         });
     }
 
@@ -985,7 +988,10 @@ SCRIPTS
                 if (data.success) {
                     showAlert('tb-profile-alert', 'success', 'Profile updated successfully.');
                     tbUpdateAvatar(name, data.avatar_url ?? null);
-                    setTimeout(() => tbCloseModal('tb-profile-modal'), 1200);
+                    setTimeout(() => {
+                        tbCloseModal('tb-profile-modal');
+                        if (data.reload) location.reload();
+                    }, 1200);
                 } else {
                     showAlert('tb-profile-alert', 'error', data.message ?? 'Something went wrong.');
                 }
@@ -1025,7 +1031,10 @@ SCRIPTS
                     document.getElementById('tb-curr-pass').value    = '';
                     document.getElementById('tb-new-pass').value     = '';
                     document.getElementById('tb-confirm-pass').value = '';
-                    setTimeout(() => tbCloseModal('tb-password-modal'), 1200);
+                    setTimeout(() => {
+                        tbCloseModal('tb-password-modal');
+                        if (data.reload) location.reload();
+                    }, 1200);
                 } else {
                     showAlert('tb-password-alert', 'error', data.message ?? 'Incorrect current password.');
                 }
