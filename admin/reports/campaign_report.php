@@ -154,7 +154,6 @@ $sc = $statusColors[$status] ?? ['bg' => '#f1f5f9', 'color' => '#64748b', 'label
 
 .main-content{
     margin-left:260px;
-    margin-top:75px;
     padding:35px;
 }
 

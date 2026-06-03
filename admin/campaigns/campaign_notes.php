@@ -21,7 +21,7 @@ if (!$check) { header("Location: ../../index.php"); exit(); }
 CREATE NOTE
 ========================================
 */
-if (isset($_POST['create_note'])) {
+if (isset($_POST['create_note']) && !$isCompleted) {
     $body      = mysqli_real_escape_string($conn, trim($_POST['body']));
     $is_pinned = isset($_POST['is_pinned']) ? 1 : 0;
 
@@ -58,7 +58,7 @@ if (isset($_POST['create_note'])) {
 EDIT NOTE
 ========================================
 */
-if (isset($_POST['edit_note'])) {
+if (isset($_POST['edit_note']) && !$isCompleted) {
     $note_id   = intval($_POST['note_id']);
     $body      = mysqli_real_escape_string($conn, trim($_POST['body']));
     $is_pinned = isset($_POST['is_pinned']) ? 1 : 0;
@@ -78,7 +78,7 @@ if (isset($_POST['edit_note'])) {
 DELETE NOTE
 ========================================
 */
-if (isset($_POST['delete_note'])) {
+if (isset($_POST['delete_note']) && !$isCompleted) {
     $note_id = intval($_POST['note_id']);
     mysqli_query($conn, "
         DELETE FROM campaign_notes
@@ -95,6 +95,7 @@ FETCH DATA
 ========================================
 */
 $campaign = $check;
+$isCompleted = $campaign['status'] === 'completed';
 
 $notes = mysqli_query($conn, "
     SELECT n.*, u.name AS staff_name
@@ -264,18 +265,19 @@ include('../../includes/topbar.php');
 
     <div class="dashboard-card">
 
+        <?php if (!$isCompleted): ?>
         <!-- COMPOSE -->
         <div class="compose-panel">
             <h6><i class="fa-solid fa-pen-to-square text-primary"></i> Post a note</h6>
             <form method="POST" action="campaign_notes.php?id=<?= $campaign_id; ?>">
                 <textarea name="body"
-                          class="compose-textarea"
-                          placeholder="Write an update, announcement, or reminder for the client..."
-                          required></textarea>
+                        class="compose-textarea"
+                        placeholder="Write an update, announcement, or reminder for the client..."
+                        required></textarea>
                 <div class="d-flex justify-content-between align-items-center mt-3">
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox"
-                               name="is_pinned" id="pinCheck">
+                            name="is_pinned" id="pinCheck">
                         <label class="form-check-label" for="pinCheck" style="font-size:13px;">
                             <i class="fa-solid fa-thumbtack me-1 text-warning"></i> Pin this note
                         </label>
@@ -287,6 +289,16 @@ include('../../includes/topbar.php');
                 </div>
             </form>
         </div>
+        <?php else: ?>
+        <div class="alert d-flex align-items-center gap-2 mb-4"
+            style="background:#f8fafc; border:1.5px solid #e2e8f0;
+                    border-radius:14px; padding:16px 20px; font-size:14px;">
+            <i class="fa-solid fa-lock" style="color:#94a3b8; font-size:18px; flex-shrink:0;"></i>
+            <span style="color:#64748b;">
+                This campaign is completed. New notes cannot be posted and existing notes are read-only.
+            </span>
+        </div>
+        <?php endif; ?>
 
         <!-- NOTES LIST -->
         <?php $count = mysqli_num_rows($notes); ?>
@@ -326,7 +338,7 @@ include('../../includes/topbar.php');
                 <div class="note-body"><?= htmlspecialchars($note['body']); ?></div>
 
                 <!-- Only show actions if this staff posted it -->
-                <?php if ($note['staff_id'] == $user_id): ?>
+                <?php if ($note['staff_id'] == $user_id && !$isCompleted): ?>
                 <div class="note-footer">
                     <button class="btn-note-action btn-note-edit"
                             onclick="openEditModal(

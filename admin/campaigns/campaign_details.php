@@ -122,7 +122,7 @@ if(isset($_POST['notify_client'])){
     mysqli_query($conn,"UPDATE approvals SET notified = 1 WHERE approval_id = $approval_id");
 
     mysqli_query($conn,"
-        INSERT INTO notifications (user_id, title, message, role, created_at)
+        INSERT INTO notifications (user_id, title, message)
         VALUES (
             $client_id,
             'Revision Completed',
@@ -150,7 +150,10 @@ $campaignQuery = mysqli_query($conn,"
 ");
 
 $campaign = mysqli_fetch_assoc($campaignQuery);
+
 if(!$campaign) die("Campaign not found.");
+
+$isCompleted = $campaign['status'] === 'completed';
 
 /*
 ========================================
@@ -585,9 +588,13 @@ include('../../includes/topbar.php');
                     <i class="fa-solid fa-message"></i> Notes
             </a>
 
-            <?php if($campaign['assigned_staff_id'] == $user_id): ?>
+            <?php if($isCompleted): ?>
+            <button class="btn btn-secondary btn-sm" disabled title="Campaign completed">
+                <i class="fa-solid fa-upload"></i> Upload Asset
+            </button>
+            <?php elseif($campaign['assigned_staff_id'] == $user_id): ?>
                 <a href="../assets/upload_assets.php?id=<?= $campaign_id; ?>"
-                   class="btn btn-success btn-sm">
+                class="btn btn-success btn-sm">
                     <i class="fa-solid fa-upload"></i> Upload Asset
                 </a>
             <?php else: ?>
@@ -608,6 +615,23 @@ include('../../includes/topbar.php');
 
         </div>
     </div>
+
+    <?php if($isCompleted): ?>
+    <div class="alert d-flex align-items-center gap-3 mb-4"
+         style="background:#f0fdf4; border:1.5px solid #bbf7d0;
+                border-radius:18px; padding:16px 22px; font-size:14px;">
+        <i class="fa-solid fa-circle-check"
+           style="font-size:22px; color:#16a34a; flex-shrink:0;"></i>
+        <div>
+            <strong style="color:#15803d;">Campaign Completed</strong>
+            <span style="color:#4ade80; margin: 0 6px;">·</span>
+            <span style="color:#166534;">
+                This campaign has been marked as finished. All editing is disabled.
+                The report is still available for download.
+            </span>
+        </div>
+    </div>
+    <?php endif; ?>
 
     <!-- INFO CARDS -->
     <div class="info-grid">
@@ -671,6 +695,7 @@ include('../../includes/topbar.php');
             </div>
         </div>
 
+        <?php if(!$isCompleted): ?>
         <!-- ── CREATE FORM ── -->
         <div class="milestone-form-panel">
             <h6>
@@ -679,37 +704,31 @@ include('../../includes/topbar.php');
             </h6>
             <form method="POST" action="campaign_details.php?id=<?= $campaign_id; ?>">
                 <div class="row g-3 align-items-end">
-
                     <div class="col-md-5">
                         <div class="form-label-sm">Milestone Title <span class="text-danger">*</span></div>
-                        <input type="text"
-                               name="title"
-                               class="form-control-sm-custom"
-                               placeholder="e.g. Initial Design Draft"
-                               required>
+                        <input type="text" name="title" class="form-control-sm-custom"
+                            placeholder="e.g. Initial Design Draft" required>
                     </div>
-
                     <div class="col-md-4">
                         <div class="form-label-sm">Deadline <span class="text-danger">*</span></div>
-                        <input type="date"
-                               name="deadline"
-                               class="form-control-sm-custom"
-                               min="<?= date('Y-m-d'); ?>"
-                               required>
+                        <input type="date" name="deadline" class="form-control-sm-custom"
+                            min="<?= date('Y-m-d'); ?>" required>
                     </div>
-
                     <div class="col-md-3">
-                        <button type="submit"
-                                name="create_milestone"
-                                class="btn-add-milestone w-100">
-                            <i class="fa-solid fa-plus"></i>
-                            Add Milestone
+                        <button type="submit" name="create_milestone" class="btn-add-milestone w-100">
+                            <i class="fa-solid fa-plus"></i> Add Milestone
                         </button>
                     </div>
-
                 </div>
             </form>
         </div>
+        <?php else: ?>
+        <div class="alert alert-secondary d-flex align-items-center gap-2 mb-4"
+            style="border-radius:14px; font-size:14px;">
+            <i class="fa-solid fa-lock"></i>
+            This campaign is completed. Milestones are locked and cannot be modified.
+        </div>
+        <?php endif; ?>
 
         <!-- ── MILESTONE TABLE ── -->
         <?php
@@ -776,6 +795,7 @@ include('../../includes/topbar.php');
                     <div class="milestone-actions">
 
                         <!-- EDIT BUTTON -->
+                        <?php if(!$isCompleted): ?>
                         <button class="btn-icon btn-edit"
                                 onclick="openEditModal(
                                     <?= $mile['milestone_id']; ?>,
@@ -783,19 +803,20 @@ include('../../includes/topbar.php');
                                     '<?= $mile['deadline']; ?>',
                                     '<?= $mile['status']; ?>'
                                 )">
-                            <i class="fa-solid fa-pen-to-square"></i>
-                            Edit
+                            <i class="fa-solid fa-pen-to-square"></i> Edit
                         </button>
-
-                        <!-- DELETE BUTTON -->
                         <button class="btn-icon btn-delete"
                                 onclick="openDeleteModal(
                                     <?= $mile['milestone_id']; ?>,
                                     '<?= htmlspecialchars(addslashes($mile['title'])); ?>'
                                 )">
-                            <i class="fa-solid fa-trash"></i>
-                            Delete
+                            <i class="fa-solid fa-trash"></i> Delete
                         </button>
+                        <?php else: ?>
+                            <span style="font-size:12px; color:#94a3b8;">
+                                <i class="fa-solid fa-lock me-1"></i>Locked
+                            </span>
+                        <?php endif; ?>
 
                     </div>
                 </td>
@@ -820,9 +841,9 @@ include('../../includes/topbar.php');
 
         <div class="card-header-custom">
             <h3><i class="fa-solid fa-photo-film me-2 text-primary"></i>Uploaded Assets</h3>
-            <?php if($campaign['assigned_staff_id'] == $user_id): ?>
+            <?php if(!$isCompleted && $campaign['assigned_staff_id'] == $user_id): ?>
                 <a href="../assets/upload_assets.php?id=<?= $campaign_id; ?>"
-                   class="btn btn-success btn-sm">
+                class="btn btn-success btn-sm">
                     <i class="fa-solid fa-plus"></i> Add Asset
                 </a>
             <?php endif; ?>
@@ -964,7 +985,7 @@ include('../../includes/topbar.php');
                                 <input type="hidden" name="client_id"     value="<?= $fb['client_id']; ?>">
                                 <button type="submit"
                                         class="btn btn-info btn-sm w-100 mt-2 text-white"
-                                        <?= $fb['notified'] ? 'disabled' : ''; ?>>
+                                        <?= ($fb['notified'] || $isCompleted) ? 'disabled' : ''; ?>>
                                     <i class="fa-solid fa-<?= $fb['notified'] ? 'check' : 'bell'; ?> me-1"></i>
                                     <?= $fb['notified'] ? 'Client Notified' : 'Notify Client — Revision Done'; ?>
                                 </button>

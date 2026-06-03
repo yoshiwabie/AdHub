@@ -432,6 +432,23 @@ $budget_percent = $budget > 0 ? round(($total_spent / $budget) * 100) : 0;
         </div>
     </div>
 
+    <?php if($isCompleted): ?>
+    <div class="alert d-flex align-items-center gap-3 mb-4"
+         style="background:#f0fdf4; border:1.5px solid #bbf7d0;
+                border-radius:18px; padding:16px 22px; font-size:14px;">
+        <i class="fa-solid fa-circle-check"
+           style="font-size:22px; color:#16a34a; flex-shrink:0;"></i>
+        <div>
+            <strong style="color:#15803d;">Campaign Completed</strong>
+            <span style="color:#4ade80; margin: 0 6px;">·</span>
+            <span style="color:#166534;">
+                This campaign has been marked as finished. All editing is disabled.
+                The report is still available for download.
+            </span>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <!-- INFO CARDS -->
     <div class="info-grid">
 

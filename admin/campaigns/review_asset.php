@@ -123,17 +123,31 @@ if($selected_asset){
     padding:35px;
 }
 
-.page-title{
-    font-size:28px;
-    font-weight:700;
-    color:var(--primary);
-    margin-bottom:5px;
+/* REVIEW HEADER */
+.review-header {
+    background: linear-gradient(135deg, #1e293b, #334155);
+    border-radius: 24px;
+    padding: 30px 35px;
+    color: white;
+    margin-bottom: 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
 }
 
-.page-subtitle{
-    color:#64748b;
-    font-size:14px;
-    margin-bottom:25px;
+.review-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0;
+    color: white;
+}
+
+.review-header p {
+    margin: 8px 0 0;
+    color: #94a3b8;
+    font-size: 14px;
 }
 
 /* PANEL CARDS */
@@ -407,11 +421,23 @@ if($selected_asset){
 <!-- MAIN -->
 <div class="main-content">
 
-    <div class="page-title">
-        <i class="fa-solid fa-photo-film me-2"></i>Review Assets
-    </div>
-    <div class="page-subtitle">
-        Browse and preview uploaded campaign assets.
+    <div class="review-header">
+        <div>
+            <h1>
+                <i class="fa-solid fa-photo-film me-2"></i>
+                Review Assets
+            </h1>
+            <p>
+                Browse and preview deliverables uploaded for this campaign.
+            </p>
+        </div>
+        <div>
+            <a href="campaign_details.php?id=<?= $campaign_id; ?>"
+            class="btn btn-outline-light btn-sm">
+                <i class="fa-solid fa-arrow-left me-1"></i>
+                Campaign Details
+            </a>
+        </div>
     </div>
 
     <div class="row g-4">
