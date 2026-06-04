@@ -1,3 +1,6 @@
+<head>
+    <link rel="icon" type="image/png" href="/AdHub_V2/assets/adHub_LOGO.png">
+</head>
 <?php
 session_start();
 
