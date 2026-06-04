@@ -22,24 +22,89 @@ $name    = $_SESSION['name'];
 STATS
 ========================================
 */
-$total_campaigns  = countTable($conn, "campaigns");
-$total_assets     = countTable($conn, "assets");
-$total_feedbacks  = countTable($conn, "approvals");
-$total_milestones = countTable($conn, "milestones");
+$total_campaigns  = mysqli_fetch_assoc(mysqli_query($conn,
+    "SELECT COUNT(*) as c FROM campaigns WHERE assigned_staff_id = '$user_id'"))['c'] ?? 0;
 
-$recent_campaigns  = getRecentCampaigns($conn);
-$approved_assets   = getApprovedAssets($conn);
-$revision_assets   = getRevisionAssets($conn);
-$milestone_progress = getMilestoneProgress($conn);
+$total_assets     = mysqli_fetch_assoc(mysqli_query($conn,
+    "SELECT COUNT(*) as c FROM assets WHERE uploaded_by = '$user_id'"))['c'] ?? 0;
+
+$total_feedbacks  = mysqli_fetch_assoc(mysqli_query($conn,
+    "SELECT COUNT(*) as c FROM approvals a
+     JOIN milestones m ON a.milestone_id = m.milestone_id
+     JOIN campaigns c ON m.campaign_id = c.campaign_id
+     WHERE c.assigned_staff_id = '$user_id'"))['c'] ?? 0;
+
+$total_milestones = mysqli_fetch_assoc(mysqli_query($conn,
+    "SELECT COUNT(*) as c FROM milestones m
+     JOIN campaigns c ON m.campaign_id = c.campaign_id
+     WHERE c.assigned_staff_id = '$user_id'"))['c'] ?? 0;
+
+/*
+========================================
+RECENT CAMPAIGNS
+========================================
+*/
+$recent_campaigns = mysqli_query($conn,"
+    SELECT * FROM campaigns
+    WHERE assigned_staff_id = '$user_id'
+    ORDER BY campaign_id DESC
+    LIMIT 5
+");
+
+/*
+========================================
+APPROVED & REVISION ASSETS
+========================================
+*/
+$approved_assets = mysqli_query($conn,"
+    SELECT a.*, c.campaign_name
+    FROM assets a
+    JOIN milestones m ON a.milestone_id = m.milestone_id
+    JOIN campaigns c ON m.campaign_id = c.campaign_id
+    JOIN approvals ap ON ap.milestone_id = m.milestone_id
+    WHERE c.assigned_staff_id = '$user_id'
+    AND ap.status = 'approved'
+    ORDER BY a.uploaded_at DESC
+");
+
+$revision_assets = mysqli_query($conn,"
+    SELECT a.*, c.campaign_name
+    FROM assets a
+    JOIN milestones m ON a.milestone_id = m.milestone_id
+    JOIN campaigns c ON m.campaign_id = c.campaign_id
+    JOIN approvals ap ON ap.milestone_id = m.milestone_id
+    WHERE c.assigned_staff_id = '$user_id'
+    AND ap.status = 'revision'
+    ORDER BY a.uploaded_at DESC
+");
+
+/*
+========================================
+MILESTONE PROGRESS
+========================================
+*/
+$milestone_progress = mysqli_query($conn,"
+    SELECT
+        c.campaign_name,
+        COUNT(m.milestone_id) as total,
+        SUM(m.status = 'approved') as done
+    FROM milestones m
+    JOIN campaigns c ON m.campaign_id = c.campaign_id
+    WHERE c.assigned_staff_id = '$user_id'
+    GROUP BY c.campaign_id
+");
 
 /*
 ========================================
 BUDGET
 ========================================
 */
-$budgetData  = mysqli_query($conn,"
+$budgetData = mysqli_query($conn,"
     SELECT MONTH(log_date) as month, SUM(cost) as total_cost
     FROM time_logs
+    WHERE campaign_id IN (
+        SELECT campaign_id FROM campaigns WHERE assigned_staff_id = '$user_id'
+    )
     GROUP BY MONTH(log_date)
     ORDER BY MONTH(log_date)
 ");
@@ -49,10 +114,23 @@ while($row = mysqli_fetch_assoc($budgetData)){
     $monthlyCosts[(int)$row['month'] - 1] = (float)$row['total_cost'];
 }
 
-$total_spent  = mysqli_fetch_assoc(mysqli_query($conn,"SELECT SUM(cost) as s FROM time_logs"))['s'] ?? 0;
-$total_budget = mysqli_fetch_assoc(mysqli_query($conn,"SELECT SUM(total_amount) as s FROM retainers"))['s'] ?? 0;
-$remaining    = max(0, $total_budget - $total_spent);
-$budget_pct   = $total_budget > 0 ? round(($total_spent / $total_budget) * 100) : 0;
+$total_spent = mysqli_fetch_assoc(mysqli_query($conn,"
+    SELECT SUM(cost) as s FROM time_logs
+    WHERE campaign_id IN (
+        SELECT campaign_id FROM campaigns WHERE assigned_staff_id = '$user_id'
+    )
+"))['s'] ?? 0;
+
+$total_budget = mysqli_fetch_assoc(mysqli_query($conn,"
+    SELECT SUM(r.total_amount) as s 
+    FROM retainers r
+    WHERE r.client_id IN (
+        SELECT client_id FROM campaigns WHERE assigned_staff_id = '$user_id'
+    )
+"))['s'] ?? 0;
+
+$remaining  = max(0, $total_budget - $total_spent);
+$budget_pct = $total_budget > 0 ? round(($total_spent / $total_budget) * 100) : 0;
 
 /*
 ========================================
@@ -61,7 +139,7 @@ NOTIFICATIONS
 */
 $notificationsQuery = mysqli_query($conn,"
     SELECT * FROM notifications
-    WHERE user_id = '$user_id' OR user_id IS NULL
+    WHERE user_id = '$user_id'
     ORDER BY created_at DESC
     LIMIT 5
 ");

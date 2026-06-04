@@ -2,7 +2,6 @@
 session_start();
 
 include('../../config/db.php');
-include('../../includes/topbar.php');
 
 if(!isset($_SESSION['user_id']) || $_SESSION['role'] != 'staff'){
     header("Location: ../../index.php");
@@ -25,8 +24,15 @@ if(isset($_POST['save_log'])){
     $log_date     = mysqli_real_escape_string($conn, $_POST['log_date']);
     $hourly_rate  = (float)$_POST['hourly_rate'];
 
+    // Check if campaign is completed
+    $campCheck = mysqli_fetch_assoc(mysqli_query($conn,"
+        SELECT status, client_id FROM campaigns WHERE campaign_id='$campaign_id' LIMIT 1
+    "));
+
     if($log_date < $today){
         $_SESSION['flash'] = ['type'=>'error','msg'=>'You cannot log time for a past date.'];
+    } elseif(!$campCheck || $campCheck['status'] === 'completed'){
+        $_SESSION['flash'] = ['type'=>'error','msg'=>'You cannot log time for a completed campaign.'];
     } else {
         $cost = $hours * $hourly_rate;
         mysqli_query($conn,"
@@ -34,8 +40,7 @@ if(isset($_POST['save_log'])){
             VALUES('$campaign_id','$user_id','$log_date','$hours','$hourly_rate','$cost')
         ");
 
-        $campRow   = mysqli_fetch_assoc(mysqli_query($conn,"SELECT client_id FROM campaigns WHERE campaign_id='$campaign_id' LIMIT 1"));
-        $client_id = $campRow['client_id'] ?? null;
+        $client_id = $campCheck['client_id'] ?? null;
         if($client_id){
             mysqli_query($conn,"
                 UPDATE retainers
@@ -140,7 +145,11 @@ $search = $_GET['search'] ?? '';
 $searchEsc = mysqli_real_escape_string($conn, $search);
 
 $campaigns = mysqli_query($conn,"
-    SELECT * FROM campaigns WHERE assigned_staff_id='$user_id' ORDER BY campaign_name ASC
+    SELECT * FROM campaigns 
+    WHERE assigned_staff_id='$user_id' 
+    AND status != 'completed'
+    AND status != 'archived'
+    ORDER BY campaign_name ASC
 ");
 
 $logsQuery = mysqli_query($conn,"
@@ -165,6 +174,8 @@ $default_rate = mysqli_fetch_assoc(mysqli_query($conn,"SELECT hourly_rate FROM u
 
 $flash = $_SESSION['flash'] ?? null;
 unset($_SESSION['flash']);
+
+include('../../includes/topbar.php');
 ?>
 <!DOCTYPE html>
 <html lang="en">
